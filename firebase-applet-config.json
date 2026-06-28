@@ -1,9 +1,9 @@
 {
-  "projectId": "yttriferous-diagram-dfbwx",
-  "appId": "1:544452059402:web:9d0f80cf645be560d15af3",
-  "apiKey": "AIzaSyDqPZqg2IWHOnf0e23Ka8bqNLk21p5hEvU",
-  "authDomain": "yttriferous-diagram-dfbwx.firebaseapp.com",
-  "storageBucket": "yttriferous-diagram-dfbwx.firebasestorage.app",
-  "messagingSenderId": "544452059402",
+  "projectId": "clutch-ai-500716",
+  "appId": "YOUR_NEW_APP_ID_FROM_DASHBOARD",
+  "apiKey": "YOUR_NEW_API_KEY_FROM_DASHBOARD",
+  "authDomain": "clutch-ai-500716.firebaseapp.com",
+  "storageBucket": "clutch-ai-500716.firebasestorage.app",
+  "messagingSenderId": "926875129160",
   "measurementId": ""
 }
