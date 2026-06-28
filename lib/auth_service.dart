@@ -16,11 +16,9 @@ class UserProfile {
     this.accessToken,
   });
 }
-
 class AuthService with ChangeNotifier {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: [
-      'email',
       'https://www.googleapis.com/auth/calendar.events',
     ],
   );

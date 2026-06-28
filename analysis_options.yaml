@@ -1,0 +1,10 @@
+analyzer:
+  exclude:
+    - node_modules/**
+    - src/**
+  errors:
+    todo: ignore
+    missing_required_param: ignore
+    missing_return: ignore
+    uri_does_not_exist: ignore
+    unused_import: ignore
