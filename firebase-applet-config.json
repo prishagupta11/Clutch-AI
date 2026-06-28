@@ -1,7 +1,7 @@
 {
   "projectId": "clutch-ai-500716",
   "appId": "YOUR_NEW_APP_ID_FROM_DASHBOARD",
-  "apiKey": "GEMINI_API_KEY",
+  "apiKey": "firebase_GEMINI_API_KEY",
   "authDomain": "clutch-ai-500716.firebaseapp.com",
   "storageBucket": "clutch-ai-500716.firebasestorage.app",
   "messagingSenderId": "926875129160",
