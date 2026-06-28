@@ -89,11 +89,11 @@ export default function App() {
   // Right Pane: Simulated Phone & Authentication State
   const [currentTime, setCurrentTime] = useState<string>("10:00 AM");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [currentUserEmail, setCurrentUserEmail] = useState<string>("bhaiiikiishadiii@gmail.com");
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
 
   // Google Login State Machine
   const [loginStep, setLoginStep] = useState<"email" | "password" | "register" | "loading">("email");
-  const [loginEmail, setLoginEmail] = useState<string>("bhaiiikiishadiii@gmail.com");
+  const [loginEmail, setLoginEmail] = useState<string>("");
   const [loginPassword, setLoginPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -109,14 +109,14 @@ export default function App() {
 
   // Profile Form state (synchronized to localStorage)
   const [userProfile, setUserProfile] = useState<UserProfile>({
-    displayName: "bhaiiikiishadiii",
-    email: "bhaiiikiishadiii@gmail.com",
+    displayName: "",
+    email: "",
     phone: "+91 98765 43210",
     avatar: AVATARS[0],
     aiTone: "Professional & Encouraging",
     aiInstructions: "",
     age: 20,
-    username: "bhaiiikiishadiii"
+    username: ""
   });
 
   // State / Tasks List
@@ -150,7 +150,7 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        const email = user.email || "bhaiiikiishadiii@gmail.com";
+        const email = user.email || "";
         setCurrentUserEmail(email);
         const storedToken = localStorage.getItem(`clutch_google_token_${email}`) || undefined;
         setUserProfile((prev) => ({
@@ -380,7 +380,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
   };
 
   const handleGoogleSuccess = (user: any, token: string | undefined) => {
-    const email = user.email || "bhaiiikiishadiii@gmail.com";
+    const email = user.email || "";
     
     // Try loading existing profile or make a new one
     const storedProfile = localStorage.getItem(`clutch_profile_${email}`);
@@ -416,6 +416,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     setLoginStep("email");
     setLoginPassword("");
     setLoginError(null);
+    setIsAuthenticated(true);
     setActiveTab("home");
   };
 
@@ -497,20 +498,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
         setLoginError("Incorrect password. Please try again.");
       }
     } else {
-      // If no custom account is found, check if they entered the bypass hackathon account
-      if (emailKey === "bhaiiikiishadiii@gmail.com" && loginPassword === "hackathon2026") {
-        setLoginStep("loading");
-        setTimeout(() => {
-          setCurrentUserEmail(emailKey);
-          setIsAuthenticated(true);
-          setLoginStep("email");
-          setLoginPassword("");
-          setLoginError(null);
-          setActiveTab("home");
-        }, 1500);
-      } else {
-        setLoginError("No local Clutch AI account found for this email. Click 'Create account' to register or use real Google popup.");
-      }
+      setLoginError("No local Clutch AI account found for this email. Click 'Create account' to register or use real Google popup.");
     }
   };
 
@@ -587,7 +575,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     setTasks([]);
     setChatMessages([]);
     setLoginStep("email");
-    setLoginEmail("bhaiiikiishadiii@gmail.com");
+    setLoginEmail("");
     setLoginPassword("");
     setLoginError(null);
   };
@@ -817,7 +805,6 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     // Return array of days in June 2026
     const days: { dayNumber: number; dateString: string; isToday: boolean }[] = [];
     const year = 2026;
-    const month = 5; // June (0-indexed is May? No, 0=Jan, 5=June)
     
     for (let d = 1; d <= 30; d++) {
       const dateStr = `${year}-06-${d.toString().padStart(2, "0")}`;
@@ -836,33 +823,9 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     setTimeout(() => setSaveToast(null), 3000);
   };
 
-  const highlightDartCode = (code: string) => {
-    const escapeHtml = (str: string) =>
-      str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    let escaped = escapeHtml(code);
-
-    escaped = escaped.replace(
-      /\b(import|class|extends|with|implements|required|final|static|const|factory|get|set|var|dynamic|void|Future|async|await|return|if|else|try|catch|finally|true|false|null|this|new|is|super)\b/g,
-      '<span class="text-[#96AC9D] font-bold">$1</span>'
-    );
-
-    escaped = escaped.replace(/(@override)/g, '<span class="text-teal-400 font-medium">$1</span>');
-
-    escaped = escaped.replace(
-      /\b([A-Z][a-zA-Z0-9_]*)\b/g,
-      '<span class="text-[#BDC7BF] font-semibold">$1</span>'
-    );
-
-    escaped = escaped.replace(/('.*?'|".*?")/g, '<span class="text-amber-100">$1</span>');
-    escaped = escaped.replace(/(\/\/.*)/g, '<span class="text-zinc-500 italic">$1</span>');
-
-    return escaped;
-  };
-
   // Calculated statistics
   const todayStr = new Date().toISOString().split("T")[0];
   const todayTasks = tasks.filter((t) => t.dueDate === todayStr);
-  const activeTodayCount = todayTasks.filter((t) => !t.isCompleted).length;
   const completedTodayCount = todayTasks.filter((t) => t.isCompleted).length;
   const completionRate = todayTasks.length > 0 ? Math.round((completedTodayCount / todayTasks.length) * 100) : 0;
 
@@ -877,7 +840,6 @@ I can assist in solving coding or college tasks. Just describe what you need to 
         <div className="w-full max-w-md bg-[#161A18] flex flex-col relative rounded-2xl shadow-2xl border border-[#96AC9D]/10 overflow-hidden text-xs py-8 px-6">
           <div className="flex-1 flex flex-col items-center justify-center bg-[#161A18] relative overflow-hidden">
             
-            {/* Embedded styles for the Google linear loading bar animation */}
             <style dangerouslySetInnerHTML={{__html: `
               @keyframes googleProgress {
                 0% { left: -35%; width: 35%; }
@@ -886,319 +848,296 @@ I can assist in solving coding or college tasks. Just describe what you need to 
               }
             `}} />
 
-                  {/* Main Login Box */}
-                  <div className="w-full max-w-[310px] bg-[#1b1c1e] border border-[#2d2f31] rounded-2xl p-5 shadow-2xl flex flex-col items-center relative transition-all duration-300">
-                    
-                    {/* Clutch AI Logo Header */}
-                    <div className="flex flex-col items-center mb-4 select-none text-center">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#96AC9D] to-[#BDC7BF] flex items-center justify-center text-[#161A18] font-bold text-lg shadow-md mb-1.5">
-                        C
-                      </div>
-                      <h2 className="text-white text-sm font-semibold tracking-wide">Login to Clutch AI</h2>
-                      <p className="text-[9px] text-zinc-400">Synchronize workspace & dynamic objectives</p>
-                    </div>
+            {/* Premium, Minimal Login Card Container */}
+            <div className="w-full max-w-[340px] bg-[#13151a] border border-[#22262f] rounded-2xl p-6 shadow-2xl flex flex-col relative transition-all duration-300">
+              
+              {/* Core Branding Segment */}
+              <div className="flex flex-col items-center mb-6 text-center select-none">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/10 mb-3">
+                  C
+                </div>
+                <h2 className="text-white text-base font-semibold tracking-tight">
+                  {loginStep === "register" ? "Create your account" : "Welcome back"}
+                </h2>
+                <p className="text-[10px] text-slate-400 max-w-[240px] mt-1 leading-normal">
+                  {loginStep === "register" 
+                    ? "Get started with your intelligent context workspace" 
+                    : "Empower your workflow with intelligent context automation"}
+                </p>
+              </div>
 
-                    {/* Form handling step-by-step */}
-                    {loginStep === "email" && (
-                      <div className="w-full flex flex-col items-center">
-                        {/* Official Google Identity Services Client ID Button */}
-                        <div className="w-full flex justify-center mb-1.5 min-h-[40px] overflow-hidden rounded-lg">
-                          <div id="gsi-button-container"></div>
-                        </div>
+              {/* Form and OAuth Step States */}
+              {loginStep === "email" && (
+                <div className="w-full flex flex-col">
+                  {/* Primary OAuth Sign-In Provider */}
+                  <button
+                    type="button"
+                    onClick={triggerRealGoogleLogin}
+                    className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-900 font-semibold rounded-xl border border-gray-200 text-xs transition shadow-sm cursor-pointer"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                      <path fill="#EA4335" d="M12.24 10.285V14.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.866-3.577-7.866-8s3.536-8 7.866-8c2.46 0 4.105 1.025 5.047 1.926l3.227-3.107C18.435 2.221 15.534 1 12.24 1 6.033 1 12.24s5.033 11.24 11.24 11.24c6.478 0 10.793-4.537 10.793-10.986 0-.746-.08-1.32-.176-1.709H12.24z"/>
+                    </svg>
+                    <span>Continue with Google</span>
+                  </button>
 
-                        {/* Direct Secure Google Popup Sign-In Button (Fallback/Alternative) */}
-                        <button
-                          type="button"
-                          onClick={triggerRealGoogleLogin}
-                          className="w-full flex items-center justify-center gap-1.5 py-1 px-2.5 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 rounded-lg text-[9px] font-mono tracking-wide transition shadow-sm mb-3.5 cursor-pointer"
-                        >
-                          <span>Can't see button? Trigger Sign In Popup</span>
-                        </button>
-
-                        <div className="flex items-center gap-2 w-full my-1.5 select-none">
-                          <span className="h-px bg-[#2d2f31]/60 flex-1"></span>
-                          <span className="text-[8px] text-zinc-500 font-mono uppercase tracking-wider">or manual credentials</span>
-                          <span className="h-px bg-[#2d2f31]/60 flex-1"></span>
-                        </div>
-
-                        <form onSubmit={handleEmailNext} className="w-full flex flex-col items-center">
-                          <div className="w-full text-left space-y-1.5 mt-2">
-                            <label className="text-[9px] font-semibold text-zinc-500 uppercase tracking-widest block pl-1">
-                              Clutch Email Address
-                            </label>
-                            <input
-                              type="email"
-                              required
-                              value={loginEmail}
-                              onChange={(e) => {
-                                setLoginEmail(e.target.value);
-                                setLoginError(null);
-                              }}
-                              placeholder="e.g. bhaiiikiishadiii@gmail.com"
-                              className="w-full bg-[#1e1f20] border border-[#444746] focus:border-[#8ab4f8] focus:ring-1 focus:ring-[#8ab4f8] rounded-lg px-3.5 py-2.5 text-white focus:outline-none text-xs transition placeholder-zinc-600"
-                            />
-                          </div>
-
-                          {loginError && (
-                            <div className="text-red-400 text-[10px] flex items-start gap-1.5 text-left w-full mt-2.5 bg-red-950/20 p-2 rounded border border-red-900/20 font-mono">
-                              <span className="shrink-0 mt-0.5">⚠️</span>
-                              <span>{loginError}</span>
-                            </div>
-                          )}
-
-                          <div className="flex justify-between items-center w-full pt-6 mt-4 border-t border-[#2d2f31]/50">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setLoginStep("register");
-                                setLoginError(null);
-                              }}
-                              className="text-[#8ab4f8] font-bold text-xs hover:underline"
-                            >
-                              Create account
-                            </button>
-                            <button
-                              type="submit"
-                              className="bg-[#8ab4f8] hover:bg-[#8ab4f8]/90 text-[#131314] font-bold px-5 py-2 rounded-full text-xs transition shadow-md hover:shadow-lg"
-                            >
-                              Next
-                            </button>
-                          </div>
-                        </form>
-                      </div>
-                    )}
-
-                    {loginStep === "password" && (
-                      <form onSubmit={handlePasswordNext} className="w-full flex flex-col items-center">
-                        {/* Account Selector Chip */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setLoginStep("email");
-                            setLoginPassword("");
-                            setLoginError(null);
-                          }}
-                          className="flex items-center gap-1.5 px-3 py-1 bg-[#1e1f20] border border-[#444746] rounded-full text-[10px] text-[#e3e3e3] hover:bg-[#2a2b2c] transition mt-2 mb-4 max-w-[220px]"
-                          title="Switch account"
-                        >
-                          <div className="w-3.5 h-3.5 rounded-full bg-zinc-600 flex items-center justify-center text-[8px] font-bold text-white shrink-0">
-                            {loginEmail ? loginEmail.charAt(0).toUpperCase() : "U"}
-                          </div>
-                          <span className="truncate max-w-[140px] font-mono text-[9px]">{loginEmail}</span>
-                          <span className="text-[8px] text-[#c4c7c5] pl-0.5">▼</span>
-                        </button>
-
-                        <div className="w-full text-left space-y-1.5">
-                          <label className="text-[9px] font-semibold text-zinc-500 uppercase tracking-widest block pl-1">
-                            Enter Clutch Password
-                          </label>
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            required
-                            value={loginPassword}
-                            onChange={(e) => {
-                              setLoginPassword(e.target.value);
-                              setLoginError(null);
-                            }}
-                            placeholder="Password"
-                            className="w-full bg-[#1e1f20] border border-[#444746] focus:border-[#8ab4f8] focus:ring-1 focus:ring-[#8ab4f8] rounded-lg px-3.5 py-2.5 text-white focus:outline-none text-xs transition"
-                          />
-                        </div>
-
-                        {/* Show password checkbox */}
-                        <div className="flex items-center gap-2 mt-2.5 text-left w-full pl-1 select-none">
-                          <input
-                            type="checkbox"
-                            id="showPass"
-                            checked={showPassword}
-                            onChange={(e) => setShowPassword(e.target.checked)}
-                            className="rounded border-[#747775] bg-[#1e1f20] text-[#8ab4f8] focus:ring-[#8ab4f8] w-3.5 h-3.5 accent-[#8ab4f8] cursor-pointer"
-                          />
-                          <label htmlFor="showPass" className="text-zinc-300 text-[10px] font-medium cursor-pointer">
-                            Show password
-                          </label>
-                        </div>
-
-                        {loginError && (
-                          <div className="text-red-400 text-[10px] flex items-start gap-1.5 text-left w-full mt-3 bg-red-950/20 p-2 rounded border border-red-900/20 font-mono">
-                            <span className="shrink-0 mt-0.5">⚠️</span>
-                            <span>{loginError}</span>
-                          </div>
-                        )}
-
-                        <div className="flex justify-between items-center w-full pt-6 mt-6 border-t border-[#2d2f31]/50">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setLoginStep("email");
-                              setLoginPassword("");
-                              setLoginError(null);
-                            }}
-                            className="text-[#8ab4f8] font-bold text-xs hover:underline text-left"
-                          >
-                            Back
-                          </button>
-                          <button
-                            type="submit"
-                            className="bg-[#8ab4f8] hover:bg-[#8ab4f8]/90 text-[#131314] font-bold px-5 py-2 rounded-full text-xs transition shadow-md"
-                          >
-                            Login
-                          </button>
-                        </div>
-                      </form>
-                    )}
-
-                    {loginStep === "register" && (
-                      <form onSubmit={handleRegisterSubmit} className="w-full flex flex-col items-center">
-                        <h3 className="text-white text-xs font-semibold tracking-wide mt-1">Create Custom Account</h3>
-                        <p className="text-[9px] text-zinc-400 mt-1 mb-4">
-                          Enter your credentials to register on Clutch AI
-                        </p>
-
-                        <div className="w-full text-left space-y-2.5 max-h-[190px] overflow-y-auto pr-1">
-                          <div className="space-y-1">
-                            <label className="text-[8px] font-semibold text-zinc-500 uppercase tracking-wider block pl-1">
-                              Choose Username
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              value={regUsername}
-                              onChange={(e) => {
-                                setRegUsername(e.target.value);
-                                setLoginError(null);
-                              }}
-                              placeholder="e.g. clutch_dev"
-                              className="w-full bg-[#1e1f20] border border-[#444746] focus:border-[#8ab4f8] rounded-lg px-2.5 py-1.5 text-white focus:outline-none text-[11px] transition placeholder-zinc-700"
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <label className="text-[8px] font-semibold text-zinc-500 uppercase tracking-wider block pl-1">
-                              Your Age
-                            </label>
-                            <input
-                              type="number"
-                              required
-                              min="1"
-                              max="120"
-                              value={regAge}
-                              onChange={(e) => {
-                                setRegAge(e.target.value);
-                                setLoginError(null);
-                              }}
-                              placeholder="e.g. 21"
-                              className="w-full bg-[#1e1f20] border border-[#444746] focus:border-[#8ab4f8] rounded-lg px-2.5 py-1.5 text-white focus:outline-none text-[11px] transition placeholder-zinc-700"
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <label className="text-[8px] font-semibold text-zinc-500 uppercase tracking-wider block pl-1">
-                              Email Address
-                            </label>
-                            <input
-                              type="email"
-                              required
-                              value={regEmail}
-                              onChange={(e) => {
-                                setRegEmail(e.target.value);
-                                setLoginError(null);
-                              }}
-                              placeholder="email@example.com"
-                              className="w-full bg-[#1e1f20] border border-[#444746] focus:border-[#8ab4f8] rounded-lg px-2.5 py-1.5 text-white focus:outline-none text-[11px] transition placeholder-zinc-700"
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <label className="text-[8px] font-semibold text-zinc-500 uppercase tracking-wider block pl-1">
-                              Choose Password
-                            </label>
-                            <input
-                              type="password"
-                              required
-                              value={regPassword}
-                              onChange={(e) => {
-                                setRegPassword(e.target.value);
-                                setLoginError(null);
-                              }}
-                              placeholder="Min 6 characters"
-                              className="w-full bg-[#1e1f20] border border-[#444746] focus:border-[#8ab4f8] rounded-lg px-2.5 py-1.5 text-white focus:outline-none text-[11px] transition placeholder-zinc-700"
-                            />
-                          </div>
-                        </div>
-
-                        {loginError && (
-                          <div className="text-red-400 text-[9px] flex items-start gap-1.5 text-left w-full mt-2.5 bg-red-950/20 p-1.5 rounded border border-red-900/20 font-mono">
-                            <span className="shrink-0">⚠️</span>
-                            <span>{loginError}</span>
-                          </div>
-                        )}
-
-                        <div className="flex justify-between items-center w-full pt-4 mt-3 border-t border-[#2d2f31]/50">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setLoginStep("email");
-                              setLoginError(null);
-                            }}
-                            className="text-[#8ab4f8] font-bold text-xs hover:underline"
-                          >
-                            Back
-                          </button>
-                          <button
-                            type="submit"
-                            className="bg-[#8ab4f8] hover:bg-[#8ab4f8]/90 text-[#131314] font-bold px-4 py-1.5 rounded-full text-xs transition shadow-md"
-                          >
-                            Register
-                          </button>
-                        </div>
-                      </form>
-                    )}
-
-                    {loginStep === "loading" && (
-                      <div className="w-full flex flex-col items-center py-6 text-center">
-                        <h3 className="text-white text-sm font-semibold mb-2">Authenticating credentials...</h3>
-                        <p className="text-[10px] text-zinc-500 font-mono mb-6 uppercase tracking-wider">
-                          Establishing secure REST session
-                        </p>
-
-                        {/* Indeterminate linear loading bar */}
-                        <div className="w-full max-w-[210px] h-1 bg-[#2a2b2c] rounded-full overflow-hidden relative">
-                          <div 
-                            className="h-full bg-[#8ab4f8] rounded-full absolute left-0 top-0"
-                            style={{
-                              animation: "googleProgress 1.5s infinite ease-in-out"
-                            }}
-                          ></div>
-                        </div>
-
-                        <p className="text-[9px] text-[#96AC9D] font-mono mt-5 uppercase tracking-widest animate-pulse">
-                          Synchronizing calendars & tasks
-                        </p>
-                      </div>
-                    )}
-
+                  {/* Clean Visual Divider */}
+                  <div className="flex items-center gap-3 w-full my-5 select-none">
+                    <span className="h-px bg-[#22262f] flex-1"></span>
+                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">or sign in with email</span>
+                    <span className="h-px bg-[#22262f] flex-1"></span>
                   </div>
 
-                  {/* Hackathon Preset quick bypass */}
-                  <div className="mt-8 pt-4 border-t border-[#96AC9D]/10 w-full max-w-[310px] text-center">
-                    <p className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest mb-1.5">
-                      HACKATHON QUICK SIGN-IN
-                    </p>
+                  <form onSubmit={handleEmailNext} className="w-full flex flex-col space-y-4">
+                    <div className="w-full space-y-1.5">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block pl-0.5">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={loginEmail}
+                        onChange={(e) => {
+                          setLoginEmail(e.target.value);
+                          setLoginError(null);
+                        }}
+                        placeholder="name@company.com"
+                        className="w-full bg-[#1a1d24] border border-[#2a303c] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl px-3.5 py-2.5 text-white focus:outline-none text-xs transition placeholder-[#475569]"
+                      />
+                    </div>
+
+                    {loginError && (
+                      <div className="text-red-400 text-[10px] flex items-start gap-2 text-left w-full bg-red-500/10 p-2.5 rounded-xl border border-red-500/20 leading-relaxed">
+                        <span className="shrink-0 mt-0.5">⚠️</span>
+                        <span>{loginError}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center w-full pt-4 border-t border-[#22262f]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLoginStep("register");
+                          setLoginError(null);
+                        }}
+                        className="text-blue-500 font-semibold text-xs hover:text-blue-400 transition"
+                      >
+                        Create account
+                      </button>
+                      <button
+                        type="submit"
+                        className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold px-5 py-2 rounded-xl text-xs transition shadow-md shadow-blue-600/15"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {loginStep === "password" && (
+                <form onSubmit={handlePasswordNext} className="w-full flex flex-col space-y-4">
+                  {/* Dynamic Identifier Chip */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginStep("email");
+                      setLoginPassword("");
+                      setLoginError(null);
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1d24] border border-[#2a303c] rounded-full text-[10px] text-slate-300 hover:bg-[#22262f] transition mt-1 self-start max-w-full"
+                    title="Switch profile identifier"
+                  >
+                    <div className="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0">
+                      {loginEmail ? loginEmail.charAt(0).toUpperCase() : "U"}
+                    </div>
+                    <span className="truncate font-mono text-[9px] max-w-[160px]">{loginEmail}</span>
+                    <span className="text-[8px] text-slate-500 pl-0.5">▼</span>
+                  </button>
+
+                  <div className="w-full space-y-1.5 pt-1">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block pl-0.5">
+                      Enter Password
+                    </label>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      value={loginPassword}
+                      onChange={(e) => {
+                        setLoginPassword(e.target.value);
+                        setLoginError(null);
+                      }}
+                      placeholder="••••••••"
+                      className="w-full bg-[#1a1d24] border border-[#2a303c] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl px-3.5 py-2.5 text-white focus:outline-none text-xs transition"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 text-left w-full select-none pl-0.5">
+                    <input
+                      type="checkbox"
+                      id="showPass"
+                      checked={showPassword}
+                      onChange={(e) => setShowPassword(e.target.checked)}
+                      className="rounded border-[#2a303c] bg-[#1a1d24] text-blue-600 focus:ring-blue-500/20 w-3.5 h-3.5 accent-blue-600 cursor-pointer"
+                    />
+                    <label htmlFor="showPass" className="text-slate-300 text-[10px] font-medium cursor-pointer">
+                      Show password
+                    </label>
+                  </div>
+
+                  {loginError && (
+                    <div className="text-red-400 text-[10px] flex items-start gap-2 text-left w-full bg-red-500/10 p-2.5 rounded-xl border border-red-500/20 leading-relaxed">
+                      <span className="shrink-0 mt-0.5">⚠️</span>
+                      <span>{loginError}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center w-full pt-4 border-t border-[#22262f]">
                     <button
                       type="button"
                       onClick={() => {
-                        setLoginEmail("bhaiiikiishadiii@gmail.com");
-                        setLoginPassword("hackathon2026");
-                        setLoginStep("password");
+                        setLoginStep("email");
+                        setLoginPassword("");
                         setLoginError(null);
                       }}
-                      className="text-[11px] text-[#96AC9D] hover:underline font-mono"
+                      className="text-slate-400 font-semibold text-xs hover:text-white transition"
                     >
-                      &gt; Autofill: bhaiiikiishadiii@gmail.com
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold px-5 py-2 rounded-xl text-xs transition shadow-md shadow-blue-600/15"
+                    >
+                      Login
                     </button>
                   </div>
+                </form>
+              )}
 
+              {loginStep === "register" && (
+                <form onSubmit={handleRegisterSubmit} className="w-full flex flex-col space-y-4">
+                  <div className="w-full space-y-3.5 max-h-[240px] overflow-y-auto pr-0.5">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block pl-0.5">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={regUsername}
+                        onChange={(e) => {
+                          setRegUsername(e.target.value);
+                          setLoginError(null);
+                        }}
+                        placeholder="John Doe"
+                        className="w-full bg-[#1a1d24] border border-[#2a303c] focus:border-blue-500 rounded-xl px-3 py-2 text-white focus:outline-none text-xs transition placeholder-[#475569]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block pl-0.5">
+                        Age
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        max="120"
+                        value={regAge}
+                        onChange={(e) => {
+                          setRegAge(e.target.value);
+                          setLoginError(null);
+                        }}
+                        placeholder="25"
+                        className="w-full bg-[#1a1d24] border border-[#2a303c] focus:border-blue-500 rounded-xl px-3 py-2 text-white focus:outline-none text-xs transition placeholder-[#475569]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block pl-0.5">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={regEmail}
+                        onChange={(e) => {
+                          setRegEmail(e.target.value);
+                          setLoginError(null);
+                        }}
+                        placeholder="name@company.com"
+                        className="w-full bg-[#1a1d24] border border-[#2a303c] focus:border-blue-500 rounded-xl px-3 py-2 text-white focus:outline-none text-xs transition placeholder-[#475569]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block pl-0.5">
+                        Password
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        value={regPassword}
+                        onChange={(e) => {
+                          setRegPassword(e.target.value);
+                          setLoginError(null);
+                        }}
+                        placeholder="•••••••• (Min 6 chars)"
+                        className="w-full bg-[#1a1d24] border border-[#2a303c] focus:border-blue-500 rounded-xl px-3 py-2 text-white focus:outline-none text-xs transition placeholder-[#475569]"
+                      />
+                    </div>
+                  </div>
+
+                  {loginError && (
+                    <div className="text-red-400 text-[10px] flex items-start gap-2 text-left w-full bg-red-500/10 p-2.5 rounded-xl border border-red-500/20 leading-relaxed">
+                      <span className="shrink-0">⚠️</span>
+                      <span>{loginError}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center w-full pt-4 border-t border-[#22262f]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginStep("email");
+                        setLoginError(null);
+                      }}
+                      className="text-slate-400 font-semibold text-xs hover:text-white transition"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold px-5 py-2 rounded-xl text-xs transition shadow-md shadow-blue-600/15"
+                    >
+                      Register
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {loginStep === "loading" && (
+                <div className="w-full flex flex-col items-center py-6 text-center">
+                  <h3 className="text-white text-xs font-semibold mb-1">Authenticating credentials...</h3>
+                  <p className="text-[9px] text-slate-500 font-mono mb-6 uppercase tracking-wider">
+                    Establishing secure profile context
+                  </p>
+
+                  <div className="w-full max-w-[200px] h-1 bg-[#22262f] rounded-full overflow-hidden relative">
+                    <div 
+                      className="h-full bg-blue-500 rounded-full absolute left-0 top-0"
+                      style={{ animation: "googleProgress 1.5s infinite ease-in-out" }}
+                    ></div>
+                  </div>
+
+                  <p className="text-[8px] text-[#96AC9D] font-mono mt-5 uppercase tracking-widest animate-pulse">
+                    Synchronizing environment configs
+                  </p>
+                </div>
+              )}
+
+            </div>
           </div>
         </div>
       </div>
@@ -1866,13 +1805,6 @@ I can assist in solving coding or college tasks. Just describe what you need to 
                     {activeTab === "profile" && (
                       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
                         
-                        {/* Save profile success notification */}
-                        {saveToast && (
-                          <div className="bg-emerald-950/40 border border-emerald-900/40 px-3 py-1.5 rounded-lg text-[10px] text-emerald-300 text-center animate-pulse">
-                            {saveToast}
-                          </div>
-                        )}
-
                         {/* Editable Avatars selection */}
                         <div className="flex flex-col items-center space-y-2">
                           <div className="relative group">
