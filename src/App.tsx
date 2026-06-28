@@ -117,6 +117,8 @@ export default function App() {
   const [selectedFilterCategory, setSelectedFilterCategory] = useState<string>("All");
 
   const [chatInput, setChatInput] = useState<string>("");
+  const [chatSessions, setChatSessions] = useState<{[sessionId: string]: ChatMessage[]}>({});
+  const [activeSessionId, setActiveSessionId] = useState<string>("default");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isGeneratingAI, setIsGeneratingAI] = useState<boolean>(false);
   const [awaitingDeadlineTask, setAwaitingDeadlineTask] = useState<string | null>(null);
@@ -218,11 +220,13 @@ export default function App() {
         localStorage.setItem(`clutch_tasks_${currentUserEmail}`, JSON.stringify(defaultTasks));
       }
 
-      const storedChats = localStorage.getItem(`clutch_chats_${currentUserEmail}`);
-      if (storedChats) {
-        setChatMessages(JSON.parse(storedChats));
-      } else {
-        const defaultChats: ChatMessage[] = [
+      // Load chat sessions from localStorage
+      const storedSessions = localStorage.getItem(`clutch_chat_sessions_${currentUserEmail}`);
+      const sessionsData = storedSessions ? JSON.parse(storedSessions) : {};
+
+      if (Object.keys(sessionsData).length === 0) {
+        // Create default session if none exists
+        const defaultSession: ChatMessage[] = [
           {
             id: "ai-init",
             sender: "Clutch AI Agent",
@@ -234,8 +238,18 @@ I can assist in solving coding or college tasks. Just describe what you need to 
             type: "system"
           }
         ];
-        setChatMessages(defaultChats);
-        localStorage.setItem(`clutch_chats_${currentUserEmail}`, JSON.stringify(defaultChats));
+        const initialSessions = { "default": defaultSession };
+        setChatSessions(initialSessions);
+        setActiveSessionId("default");
+        setChatMessages(defaultSession);
+        localStorage.setItem(`clutch_chat_sessions_${currentUserEmail}`, JSON.stringify(initialSessions));
+      } else {
+        setChatSessions(sessionsData);
+        // Use first session or "default" as active
+        const firstSessionId = Object.keys(sessionsData)[0];
+        setActiveSessionId(firstSessionId);
+        // Set chatMessages from the active session
+        setChatMessages(sessionsData[firstSessionId] || []);
       }
     }
   }, [isAuthenticated, currentUserEmail]);
@@ -246,11 +260,12 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     }
   }, [tasks, isAuthenticated, currentUserEmail]);
 
+  // Save chat sessions to localStorage whenever they change
   useEffect(() => {
     if (isAuthenticated && currentUserEmail) {
-      localStorage.setItem(`clutch_chats_${currentUserEmail}`, JSON.stringify(chatMessages));
+      localStorage.setItem(`clutch_chat_sessions_${currentUserEmail}`, JSON.stringify(chatSessions));
     }
-  }, [chatMessages, isAuthenticated, currentUserEmail]);
+  }, [chatSessions, isAuthenticated, currentUserEmail]);
 
   useEffect(() => {
     if (isAuthenticated && currentUserEmail) {
@@ -603,6 +618,27 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     );
   };
 
+  const handleCreateNewTopic = () => {
+    const newSessionId = `session-${Date.now()}`;
+    const initialSessionMessages: ChatMessage[] = [
+      {
+        id: "system-welcome",
+        sender: "System",
+        content: `New chat session created. You can now discuss a new topic independently.`,
+        timestamp: currentTime,
+        isUser: false,
+        type: "system"
+      }
+    ];
+    setChatSessions((prev) => ({
+      ...prev,
+      [newSessionId]: initialSessionMessages
+    }));
+    setActiveSessionId(newSessionId);
+    setChatMessages(initialSessionMessages);
+    setAwaitingDeadlineTask(null);
+  };
+
   const handleSendAIMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const userPrompt = chatInput.trim();
@@ -611,8 +647,28 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     const userMsgId = Date.now().toString();
     const now = new Date();
     const timestamp = `${now.getHours() % 12 || 12}:${now.getMinutes().toString().padStart(2, "0")} ${now.getHours() >= 12 ? "PM" : "AM"}`;
-    setChatMessages((prev) => [
+
+    // Add user message to current session
+    setChatSessions((prev) => ({
       ...prev,
+      [activeSessionId]: [
+        ...(prev[activeSessionId] || []),
+        {
+          id: userMsgId,
+          sender: userProfile.displayName,
+          content: userPrompt,
+          timestamp,
+          isUser: true
+        }
+      ]
+    }));
+
+    setIsGeneratingAI(true);
+
+    // Build history from current session
+    const currentSessionMessages = chatSessions[activeSessionId] || [];
+    const historyWithNewMessage = [
+      ...currentSessionMessages,
       {
         id: userMsgId,
         sender: userProfile.displayName,
@@ -620,8 +676,8 @@ I can assist in solving coding or college tasks. Just describe what you need to 
         timestamp,
         isUser: true
       }
-    ]);
-    setIsGeneratingAI(true);
+    ];
+
     try {
       const response = await fetch("/api/gemini/generate", {
         method: "POST",
@@ -633,30 +689,47 @@ I can assist in solving coding or college tasks. Just describe what you need to 
           aiInstructions: userProfile.aiInstructions,
           awaitingDeadlineTask: awaitingDeadlineTask,
           accessToken: userProfile.accessToken,
-          history: chatMessages
+          history: historyWithNewMessage
         })
       });
+
       if (response.ok) {
         const data = await response.json();
         const aiMsgId = (Date.now() + 1).toString();
-        setChatMessages((prev) => [
+
+        // Add AI response to current session
+        setChatSessions((prev) => ({
           ...prev,
-          {
+          [activeSessionId]: [
+            ...(prev[activeSessionId] || []),
+            {
+              id: aiMsgId,
+              sender: "Clutch AI Agent",
+              content: data.reply,
+              timestamp,
+              isUser: false
+            }
+          ]
+        }));
+
+        // Update chatMessages with the current session messages
+        const updatedSessionMessages = [...(chatSessions[activeSessionId] || []), {
             id: aiMsgId,
             sender: "Clutch AI Agent",
             content: data.reply,
             timestamp,
             isUser: false
-          }
-        ]);
+        }];
+        setChatMessages(updatedSessionMessages);
+
         if (data.suggestedTasks && data.suggestedTasks.length > 0) {
           data.suggestedTasks.forEach((sTask: any) => {
-            const todayStr = new Date().toISOString().split("T")[0];
+            // Use the actual dueDate and dueTime from the API response, not hardcoded values
             handleAddNewTask(
               sTask.title,
               sTask.category || "General",
-              sTask.dueDate || todayStr,
-              "05:00 PM"
+              sTask.dueDate,
+              sTask.dueTime
             );
           });
         }
@@ -666,40 +739,41 @@ I can assist in solving coding or college tasks. Just describe what you need to 
           setAwaitingDeadlineTask(null);
         }
       } else {
-        throw new Error("Proxy offline.");
+        throw new Error("Network error: Could not connect to AI service.");
       }
     } catch (err) {
-      console.error("AI Assistant network failed, using dynamic local simulation:", err);
-      setTimeout(() => {
-        const aiMsgId = (Date.now() + 1).toString();
-        let replyText = "";
-        if (awaitingDeadlineTask) {
-          const todayStr = new Date().toISOString().split("T")[0];
-          handleAddNewTask(awaitingDeadlineTask, "General", todayStr, "05:00 PM");
-          replyText = `### 🗓️ Task scheduled successfully! \n\nI have locked **"${awaitingDeadlineTask}"** into your calendar for **${userPrompt}**.\n\n**Start Suggestion:**\nI recommend starting **3 hours prior** to ensure a perfect flow. Your instructions and **${userProfile.aiTone}** tone metrics have been compiled!`;
-          setAwaitingDeadlineTask(null);
-        } else {
-          const match = userPrompt.match(/(?:prepare for|study|do|write|create|build|make|plan|finish|complete)\s+([^.]+)/i);
-          const taskName = match ? match[1].trim() : userPrompt.slice(0, 30);
-          setAwaitingDeadlineTask(taskName);
-          replyText = `### 💡 Solution Draft: ${taskName}\n\nHere is my professional approach to complete this task:\n1. **Prerequisites**: Review references and set milestones.\n2. **Execution**: Dedicate a single 90-minute block for completion.\n3. **Validation**: Audit outputs against specifications.\n\n**What is the deadline for this task?** Let me know so I can schedule it and find the best time to start!`;
-          if (userProfile.aiTone === "Motivating Coach") {
-            replyText = `🏆 **LETS WIN TODAY!** Here is your battle plan:\n\n${replyText}\n\n*Drop the deadline below! Let's get this done!*`;
-          } else if (userProfile.aiTone === "Concise & Technical") {
-            replyText = `**Plan for ${taskName}**:\n- Collect assets\n- Draft structure\n- Review\n\n*Deadline? (so I can schedule it on your calendar)*`;
-          }
-        }
-        setChatMessages((prev) => [
-          ...prev,
+      console.error("AI Assistant network failed:", err);
+      const errorMsg = err instanceof Error ? err.message : "Network error: Could not connect to AI service.";
+      const aiMsgId = (Date.now() + 1).toString();
+      const now = new Date();
+      const timestamp = `${now.getHours() % 12 || 12}:${now.getMinutes().toString().padStart(2, "0")} ${now.getHours() >= 12 ? "PM" : "AM"}`;
+
+      // Add error message to current session instead of mock simulator
+      setChatSessions((prev) => ({
+        ...prev,
+        [activeSessionId]: [
+          ...(prev[activeSessionId] || []),
           {
             id: aiMsgId,
-            sender: "Clutch AI Simulator",
-            content: replyText,
+            sender: "System",
+            content: `❌ **Error:** ${errorMsg}\n\nPlease check your internet connection and try again.`,
             timestamp,
             isUser: false
           }
-        ]);
-      }, 700);
+        ]
+      }));
+
+      // Update chatMessages with the error message
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: aiMsgId,
+          sender: "System",
+          content: `❌ **Error:** ${errorMsg}\n\nPlease check your internet connection and try again.`,
+          timestamp,
+          isUser: false
+        }
+      ]);
     } finally {
       setIsGeneratingAI(false);
     }
@@ -1093,6 +1167,45 @@ I can assist in solving coding or college tasks. Just describe what you need to 
               <span>User Profile</span>
             </button>
           </nav>
+
+          <div className="space-y-3 pt-4">
+            <div className="flex items-center justify-between px-2">
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Chat Topics</span>
+              <button
+                onClick={handleCreateNewTopic}
+                className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 p-1 rounded transition"
+                title="Create new topic"
+              >
+                <PlusCircle className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-1 max-h-[120px] overflow-y-auto custom-scrollbar">
+              {Object.keys(chatSessions).map((sessionId) => {
+                const sessionMessages = chatSessions[sessionId];
+                const isActive = sessionId === activeSessionId;
+                return (
+                  <button
+                    key={sessionId}
+                    onClick={() => setActiveSessionId(sessionId)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition text-xs font-mono ${
+                      isActive
+                        ? "bg-blue-600/20 border border-blue-500/30 text-blue-300"
+                        : "text-zinc-400 hover:bg-slate-700/50 hover:text-zinc-200"
+                    }`}
+                  >
+                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      isActive ? "bg-blue-400" : "bg-slate-600"
+                    }`} />
+                    <span className="truncate flex-1">
+                      {sessionMessages.length > 0
+                        ? `Topic #${Object.keys(chatSessions).indexOf(sessionId) + 1}`
+                        : "New Topic"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4 space-y-3">
@@ -1363,6 +1476,19 @@ I can assist in solving coding or college tasks. Just describe what you need to 
                   <span className="text-[10px] bg-amber-900/60 px-2 py-0.5 rounded uppercase font-bold">Pending</span>
                 </div>
               )}
+
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
+                  Session: #{Object.keys(chatSessions).indexOf(activeSessionId) + 1}
+                </span>
+                <button
+                  onClick={handleCreateNewTopic}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 rounded-lg text-xs font-mono text-blue-400 transition"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>New Topic / Clear Thread</span>
+                </button>
+              </div>
 
               <div className="flex-1 bg-gradient-to-br from-slate-800 to-slate-750 border border-slate-600 rounded-2xl p-4 flex flex-col overflow-hidden shadow-lg shadow-slate-900/50">
                 <div ref={chatScrollRef} className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
