@@ -3,6 +3,7 @@ import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User,
 import firebaseConfig from '../../firebase-applet-config.json';
 
 // Initialize Firebase applet instance
+// Force cache clear
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
