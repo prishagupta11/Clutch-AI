@@ -1,0 +1,6 @@
+{
+  "name": "Clutch AI",
+  "description": "An ultra-polished, minimalist Flutter mobile workspace app with standard Dart provider persistence, Google Sign-In calendar REST services, and an interactive Gemini AI assistant terminal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
