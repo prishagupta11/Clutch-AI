@@ -38,14 +38,17 @@ Clutch AI is an advanced, context-aware student productivity ecosystem integrate
 
 ---
 
-  ## Repository Directory Layout
+## Repository Directory Layout
+
+```text
 ├── api/
 │   ├── chat.js         # Vercel Serverless Function & Structural Prompt Engine
 │   └── index.ts        # Backend Entry Endpoint Gateway
 ├── src/
 │   ├── lib/
-│   │   └── firebaseAuth.ts  # Identity Integration & OIDC Protocols
-│   ├── App.tsx         # Master UI Deck, Context Routers & Chat State Engine
+│   │   ├── firebaseAuth.ts  # Identity Integration & OIDC Protocols
+│   │   └── dart_code.ts     # Pre-baked template files repository
+│   ├── App.tsx         # Master UI Deck, Context Routers & Chat State Engine[cite: 1]
 │   ├── main.tsx        # React Concurrent Render Mount Anchor
 │   └── index.css       # Tailwind Directives & Global Layer Rules
 ├── public/             # System Static Assets
