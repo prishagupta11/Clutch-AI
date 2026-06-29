@@ -102,10 +102,13 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<"home" | "ai" | "calendar" | "profile">("home");
 
+  // Chat Topics state - tracks the active selected topic
+  const [activeTopic, setActiveTopic] = useState("Topic #3");
+
   const [userProfile, setUserProfile] = useState<UserProfile>({
     displayName: "",
     email: "",
-    phone: "+91 98765 43210",
+    phone: "",
     avatar: AVATARS[0],
     aiTone: "Professional & Encouraging",
     aiInstructions: "",
@@ -147,6 +150,7 @@ export default function App() {
           ...prev,
           displayName: user.displayName || user.email?.split("@")[0] || "User",
           email: email,
+          phone: user.phoneNumber || "",
           avatar: user.photoURL || prev.avatar,
           accessToken: storedToken || prev.accessToken
         }));
@@ -200,7 +204,7 @@ export default function App() {
         const defaultProf: UserProfile = {
           displayName: currentUserEmail.split("@")[0],
           email: currentUserEmail,
-          phone: "+91 98765 43210",
+          phone: "",
           avatar: AVATARS[0],
           aiTone: "Professional & Encouraging",
           aiInstructions: "",
@@ -272,6 +276,27 @@ I can assist in solving coding or college tasks. Just describe what you need to 
       localStorage.setItem(`clutch_profile_${currentUserEmail}`, JSON.stringify(userProfile));
     }
   }, [userProfile, isAuthenticated, currentUserEmail]);
+
+  // Sync activeTopic to activeSessionId when topic changes
+  useEffect(() => {
+    if (activeTopic) {
+      const sessionIndex = parseInt(activeTopic.replace("Topic #", "")) - 1;
+      const sessionIds = Object.keys(chatSessions);
+      if (sessionIndex >= 0 && sessionIndex < sessionIds.length) {
+        setActiveSessionId(sessionIds[sessionIndex]);
+      }
+    }
+  }, [activeTopic, chatSessions]);
+
+  // Sync activeSessionId changes to activeTopic for sidebar selection
+  useEffect(() => {
+    const sessionIds = Object.keys(chatSessions);
+    const sessionIndex = sessionIds.indexOf(activeSessionId);
+    if (sessionIndex >= 0) {
+      const topicName = `Topic #${sessionIndex + 1}`;
+      setActiveTopic(topicName);
+    }
+  }, [activeSessionId, chatSessions]);
 
   useEffect(() => {
     const updateTime = () => {
@@ -352,6 +377,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
         ...JSON.parse(storedProfile),
         displayName: user.displayName || user.email?.split("@")[0] || "User",
         email: email,
+        phone: user.phoneNumber || "",
         avatar: user.photoURL || AVATARS[0],
         accessToken: token
       };
@@ -359,7 +385,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
       profile = {
         displayName: user.displayName || user.email?.split("@")[0] || "User",
         email: email,
-        phone: "+91 98765 43210",
+        phone: user.phoneNumber || "",
         avatar: user.photoURL || AVATARS[0],
         aiTone: "Professional & Encouraging",
         aiInstructions: "",
@@ -433,7 +459,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
             const prof: UserProfile = {
               displayName: userAccount.username || emailKey.split("@")[0],
               email: emailKey,
-              phone: "+91 98765 43210",
+              phone: "",
               avatar: AVATARS[0],
               aiTone: "Professional & Encouraging",
               aiInstructions: "",
@@ -488,7 +514,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     const customProfile: UserProfile = {
       displayName: regUsername.trim(),
       email: emailKey,
-      phone: "+91 98765 43210",
+      phone: "",
       avatar: AVATARS[0],
       aiTone: "Professional & Encouraging",
       aiInstructions: "",
@@ -620,6 +646,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
 
   const handleCreateNewTopic = () => {
     const newSessionId = `session-${Date.now()}`;
+    const topicName = `Topic #${Object.keys(chatSessions).length + 1}`;
     const initialSessionMessages: ChatMessage[] = [
       {
         id: "system-welcome",
@@ -635,6 +662,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
       [newSessionId]: initialSessionMessages
     }));
     setActiveSessionId(newSessionId);
+    setActiveTopic(topicName);
     setChatMessages(initialSessionMessages);
     setAwaitingDeadlineTask(null);
   };
@@ -1182,11 +1210,15 @@ I can assist in solving coding or college tasks. Just describe what you need to 
             <div className="space-y-1 max-h-[120px] overflow-y-auto custom-scrollbar">
               {Object.keys(chatSessions).map((sessionId) => {
                 const sessionMessages = chatSessions[sessionId];
-                const isActive = sessionId === activeSessionId;
+                const topicName = `Topic #${Object.keys(chatSessions).indexOf(sessionId) + 1}`;
+                const isActive = activeTopic === topicName;
                 return (
                   <button
                     key={sessionId}
-                    onClick={() => setActiveSessionId(sessionId)}
+                    onClick={() => {
+                      setActiveTopic(topicName);
+                      setActiveSessionId(sessionId);
+                    }}
                     className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition text-xs font-mono ${
                       isActive
                         ? "bg-blue-600/20 border border-blue-500/30 text-blue-300"
@@ -1198,7 +1230,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
                     }`} />
                     <span className="truncate flex-1">
                       {sessionMessages.length > 0
-                        ? `Topic #${Object.keys(chatSessions).indexOf(sessionId) + 1}`
+                        ? topicName
                         : "New Topic"}
                     </span>
                   </button>
