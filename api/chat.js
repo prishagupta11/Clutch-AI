@@ -1,52 +1,37 @@
-import { NextResponse } from "next/server";
 
-export async function POST(req) {
+export default async function handler(req, res) {
+  // Clear CORS barriers
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
-    const { message } = await req.json();
     const geminiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
-    // We instruct Gemini to act as an orchestrator and return clean JSON
-    const promptPayload = {
-      contents: [{
-        parts: [{
-          text: `You are a helpful assistant. The current date is Monday, June 29, 2026. 
-          Analyze the user's input: "${message}". 
-          
-          If they want to schedule a task or event, respond ONLY with a raw JSON object in this exact format, with no markdown formatting:
-          {
-            "isTask": true,
-            "title": "Clean task title here",
-            "dueTime": "01:00 PM",
-            "dueDate": "June 30, 2026",
-            "aiResponse": "I have added that task to your calendar!"
-          }
-          
-          If it's just regular chat, return:
-          {
-            "isTask": false,
-            "title": "",
-            "dueTime": "",
-            "dueDate": "",
-            "aiResponse": "Your regular conversational response here"
-          }`
-        }]
-      }]
-    };
-
-    const response = await fetch(
+   const googleResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(promptPayload),
+        body: JSON.stringify(req.body)
       }
     );
 
-    const data = await response.json();
-    const rawText = data.candidates[0].content.parts[0].text;
-    
-    return NextResponse.json(JSON.parse(rawText.trim()));
+    const data = await googleResponse.json();
+
+    // 🚀 THE FIX: If Google gives back an error, pass it right down so we see it
+    if (data.error) {
+      return res.status(400).json({ error: data.error });
+    }
+
+    // Pass the clean Gemini response data straight to the frontend
+    return res.status(200).json(data);
   } catch (error) {
-    return NextResponse.json({ error: "Pipeline failed" }, { status: 500 });
+    return res.status(500).json({ error: error.message });
   }
 }
