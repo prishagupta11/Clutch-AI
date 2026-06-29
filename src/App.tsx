@@ -143,22 +143,34 @@ export default function App() {
 
   const [saveToast, setSaveToast] = useState<string | null>(null);
 
-  useEffect(() => {
+ useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         const email = user.email || "";
         setCurrentUserEmail(email);
+        const storedToken = localStorage.getItem(`clutch_google_token_${email}`) || undefined;
         
-        // If profile already exists, log them completely inside the workspace
+        // 🚀 THE FIX: Check if a local profile already exists for this Google Account
         const storedProfile = localStorage.getItem(`clutch_profile_${email}`);
+        
         if (storedProfile) {
+          // Existing User: Initialize normally and let them into the app deck
           const parsed = JSON.parse(storedProfile);
           setUserProfile(parsed);
           setIsAuthenticated(true);
         } else {
-          // If no profile exists, direct them through the custom onboarding flow first
-          const storedToken = localStorage.getItem(`clutch_google_token_${email}`) || undefined;
+          // Completely New User: Hold the authentication gate open!
+          // Put them into the onboarding stage step, but do NOT set isAuthenticated to true yet.
           setPendingGoogleData({ user, token: storedToken });
+          setUserProfile((prev) => ({
+            ...prev,
+            displayName: user.displayName || user.email?.split("@")[0] || "User",
+            email: email,
+            phone: "", // Keep it blank for our custom input form intake
+            avatar: user.photoURL || prev.avatar,
+            accessToken: storedToken || prev.accessToken
+          }));
+          setIsAuthenticated(false); // 🔒 Locks the gate so the onboarding UI renders instead
           setLoginStep("onboarding");
         }
       } else {
@@ -167,7 +179,6 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
-
   useEffect(() => {
     if (loginStep === "email") {
       const timer = setTimeout(() => {
