@@ -21,7 +21,7 @@ export async function POST(req) {
 
     // 2. Direct pipeline dispatch to Google Gemini Gateway with JSON configuration
     const response = await fetch(
-      `[https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$){geminiKey}`,
+     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiKey,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
