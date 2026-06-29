@@ -1864,50 +1864,43 @@ try {
                     <span>Manual Add</span>
                   </button>
                 </div>
-
-                <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-                  {["09:00 AM", "11:00 AM", "01:00 PM", "03:00 PM", "05:00 PM"].map((hour) => {
-                    const hourTasks = tasks.filter(
-                      (t) => t.dueDate === selectedCalDate && t.dueTime === hour
-                    );
-
-                    return (
-                      <div key={hour} className="flex gap-4 text-left group">
-                        <span className="font-mono text-xs text-slate-500 w-16 pt-1.5 uppercase">
-                          {hour}
-                        </span>
-                        <div className="flex-1">
-                          {hourTasks.length === 0 ? (
-                            <div className="border-t border-slate-700/50 pt-2 text-xs text-slate-600 italic">
-                              No tasks scheduled
-                            </div>
-                          ) : (
-                            hourTasks.map((t) => (
-                              <div
-                                key={t.id}
-                                className={`px-3 py-2 rounded-lg border text-sm font-medium mb-2 flex items-center justify-between group-hover:shadow-md transition ${
-                                  t.category === "Coding"
-                                    ? "bg-teal-950/20 border-teal-900/50 text-teal-300"
-                                    : t.category === "University"
-                                      ? "bg-amber-950/20 border-amber-900/50 text-amber-300"
-                                      : "bg-emerald-950/20 border-emerald-900/50 text-emerald-300"
-                                }`}
-                              >
-                                <span className="truncate max-w-[140px]">{t.title}</span>
-                                <button
-                                  onClick={() => handleDeleteTask(t.id)}
-                                  className="text-zinc-600 hover:text-red-400 font-bold px-1.5 py-0.5 rounded hover:bg-red-500/10 transition"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+{tasks.filter(t => t.dueDate === selectedCalDate).length > 0 ? (
+  tasks
+    .filter(t => t.dueDate === selectedCalDate)
+    .sort((a, b) => (a.dueTime || "").localeCompare(b.dueTime || ""))
+    .map(t => (
+      <div key={t.id} className="flex items-center justify-between p-3 bg-slate-900/60 border border-slate-800 rounded-xl mb-2">
+        <div className="flex items-center gap-4">
+          {t.dueTime && (
+            <span className="text-xs font-mono text-blue-400 font-semibold bg-blue-500/10 px-2 py-1 rounded uppercase">
+              {t.dueTime}
+            </span>
+          )}
+          <span className="text-sm text-white font-medium">{t.title}</span>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <span className={`text-[10px] px-2 py-0.5 rounded font-mono ${
+            t.category === "Coding" ? "bg-teal-950/20 border border-teal-900/50 text-teal-300" :
+            t.category === "University" ? "bg-amber-950/20 border border-amber-900/50 text-amber-300" :
+            "bg-emerald-950/20 border border-emerald-900/50 text-emerald-300"
+          }`}>
+            {t.category || "General"}
+          </span>
+          <button
+            onClick={() => handleDeleteTask(t.id)}
+            className="text-zinc-600 hover:text-red-400 font-bold px-1.5 py-0.5 rounded transition text-sm"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    ))
+) : (
+  <div className="border-t border-slate-700/50 pt-4 text-center text-xs text-slate-600 italic">
+    No tasks scheduled for this date.
+  </div>
+)}
               </div>
 
               {isTimelineAddOpen && (
