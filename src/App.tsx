@@ -729,9 +729,9 @@ const handleOnboardingSubmit = (e: React.FormEvent) => {
     setChatMessages(updatedSessionHistory);
     setIsGeneratingAI(true);
 
-    try {
-      // 🚀 Connect straight to Google's public client API gateway
-      const geminiKey = (import.meta as any).env.GEMINI_API_KEY || "";
+try {
+      // Change this variable configuration handle
+      const geminiKey = (import.meta as any).env.VITE_GEMINI_API_KEY || (process as any).env.GEMINI_API_KEY || "";
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
         {
