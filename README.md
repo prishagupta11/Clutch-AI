@@ -7,7 +7,7 @@ An intelligent, context-aware student productivity dashboard featuring the high-
 
 [![Platform: Vercel](https://img.shields.io/badge/Deployment-Vercel-black?logo=vercel)](https://vercel.com)
 [![Engine: React 18](https://img.shields.io/badge/Frontend-React%2018-blue?logo=react)](https://react.dev)
-[![Intelligence: Gemini 2.5 Flash](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-violet?logo=google-gemini)](https://ai.google.dev)
+[![Intelligence: Gemini 2.5 Flash Lite](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-violet?logo=google-gemini)](https://ai.google.dev)
 [![Auth: Firebase](https://img.shields.io/badge/Auth-Firebase-orange?logo=firebase)](https://firebase.google.com)
 
 Clutch AI is an advanced, context-aware student productivity ecosystem integrated with the high-performance **Chronos Calendar Engine**. Instead of relying on rigid, manual entry inputs, Clutch AI serves as a seamless, natural language scheduling layer. It instantly interprets conversational user prompts, maps strict data structures, isolates execution metadata, and dynamically updates layout timelines in real time—all while maintaining a highly secure, zero-leak edge serverless gateway.
