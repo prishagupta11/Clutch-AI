@@ -747,12 +747,10 @@ try {
     })
   });
 
-  const data = await response.json();
   // Keep your existing message processing logic below...
-
-      if (response.ok) {
-        const data = await response.json();
-        const aiMsgId = (Date.now() + 1).toString();
+if (response.ok) {
+      const data = await response.json();
+      const aiMsgId = (Date.now() + 1).toString();
         
         let replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response text found.";
 
