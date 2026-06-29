@@ -731,7 +731,8 @@ const handleOnboardingSubmit = (e: React.FormEvent) => {
 
 try {
       // Change this variable configuration handle
-      const geminiKey = (import.meta as any).env.VITE_GEMINI_API_KEY || (process as any).env.GEMINI_API_KEY || "";
+    // TS: import.meta.env may not be typed in this project; cast to any to access Vite env vars
+    const geminiKey = ((import.meta as any).env?.VITE_GEMINI_API_KEY as string) || "";
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
         {
