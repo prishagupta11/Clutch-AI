@@ -39,7 +39,7 @@ Clutch AI is an advanced, context-aware student productivity ecosystem integrate
   ---
 
   ## Repository Directory Layout
-  ├── api/
+├── api/
 │   ├── chat.js         # Vercel Serverless Function & Structural Prompt Engine
 │   └── index.ts        # Backend Entry Endpoint Gateway
 ├── src/
