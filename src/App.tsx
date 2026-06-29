@@ -89,7 +89,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("canvascoreco@gmail.com");
 
-  const [loginStep, setLoginStep] = useState<"email" | "password" | "register" | "loading">("email");
+  const [loginStep, setLoginStep] = useState<"email" | "password" | "register" | "onboarding" | "loading">("email");
   const [loginEmail, setLoginEmail] = useState<string>("");
   const [loginPassword, setLoginPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -99,6 +99,9 @@ export default function App() {
   const [regAge, setRegAge] = useState<string>("");
   const [regEmail, setRegEmail] = useState<string>("");
   const [regPassword, setRegPassword] = useState<string>("");
+
+  // Temporary container for Google users that require metadata setup
+  const [pendingGoogleData, setPendingGoogleData] = useState<{ user: any; token: string | undefined } | null>(null);
 
   const [activeTab, setActiveTab] = useState<"home" | "ai" | "calendar" | "profile">("home");
 
@@ -112,7 +115,7 @@ export default function App() {
     avatar: AVATARS[0],
     aiTone: "Professional & Encouraging",
     aiInstructions: "",
-    age: 20,
+    age: undefined,
     username: ""
   });
 
@@ -145,16 +148,19 @@ export default function App() {
       if (user) {
         const email = user.email || "";
         setCurrentUserEmail(email);
-        const storedToken = localStorage.getItem(`clutch_google_token_${email}`) || undefined;
-        setUserProfile((prev) => ({
-          ...prev,
-          displayName: user.displayName || user.email?.split("@")[0] || "User",
-          email: email,
-          phone: user.phoneNumber || prev.phone || "",
-          avatar: user.photoURL || prev.avatar,
-          accessToken: storedToken || prev.accessToken
-        }));
-        setIsAuthenticated(true);
+        
+        // If profile already exists, log them completely inside the workspace
+        const storedProfile = localStorage.getItem(`clutch_profile_${email}`);
+        if (storedProfile) {
+          const parsed = JSON.parse(storedProfile);
+          setUserProfile(parsed);
+          setIsAuthenticated(true);
+        } else {
+          // If no profile exists, direct them through the custom onboarding flow first
+          const storedToken = localStorage.getItem(`clutch_google_token_${email}`) || undefined;
+          setPendingGoogleData({ user, token: storedToken });
+          setLoginStep("onboarding");
+        }
       } else {
         setIsAuthenticated(false);
       }
@@ -200,19 +206,6 @@ export default function App() {
       const storedProfile = localStorage.getItem(`clutch_profile_${currentUserEmail}`);
       if (storedProfile) {
         setUserProfile(JSON.parse(storedProfile));
-      } else {
-        const defaultProf: UserProfile = {
-          displayName: currentUserEmail.split("@")[0],
-          email: currentUserEmail,
-          phone: "",
-          avatar: AVATARS[0],
-          aiTone: "Professional & Encouraging",
-          aiInstructions: "",
-          age: 20,
-          username: currentUserEmail.split("@")[0]
-        };
-        setUserProfile(defaultProf);
-        localStorage.setItem(`clutch_profile_${currentUserEmail}`, JSON.stringify(defaultProf));
       }
 
       const storedTasks = localStorage.getItem(`clutch_tasks_${currentUserEmail}`);
@@ -261,7 +254,6 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     }
   }, [tasks, isAuthenticated, currentUserEmail]);
 
-  // Save chat sessions to localStorage whenever they change
   useEffect(() => {
     if (isAuthenticated && currentUserEmail) {
       localStorage.setItem(`clutch_chat_sessions_${currentUserEmail}`, JSON.stringify(chatSessions));
@@ -360,36 +352,60 @@ I can assist in solving coding or college tasks. Just describe what you need to 
   const handleGoogleSuccess = (user: any, token: string | undefined) => {
     const email = user.email || "";
     const storedProfile = localStorage.getItem(`clutch_profile_${email}`);
-    let profile: UserProfile;
+    
     if (storedProfile) {
-      profile = {
-        ...JSON.parse(storedProfile),
-        displayName: user.displayName || user.email?.split("@")[0] || "User",
-        email: email,
-        phone: user.phoneNumber || "",
-        avatar: user.photoURL || AVATARS[0],
-        accessToken: token
-      };
+      // User exists, log them inside cleanly
+      const profile = JSON.parse(storedProfile);
+      setUserProfile(profile);
+      setCurrentUserEmail(email);
+      setIsAuthenticated(true);
+      setActiveTab("home");
     } else {
-      profile = {
-        displayName: user.displayName || user.email?.split("@")[0] || "User",
-        email: email,
-        phone: user.phoneNumber || "",
-        avatar: user.photoURL || AVATARS[0],
-        aiTone: "Professional & Encouraging",
-        aiInstructions: "",
-        age: 20,
-        username: user.email?.split("@")[0] || "user",
-        accessToken: token
-      };
+      // New account! Store data temporarily and display onboarding setup fields
+      setPendingGoogleData({ user, token });
+      setLoginStep("onboarding");
     }
-    setUserProfile(profile);
-    localStorage.setItem(`clutch_profile_${email}`, JSON.stringify(profile));
+  };
+
+  const handleOnboardingSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+
+    if (!regAge.trim() || isNaN(Number(regAge)) || Number(regAge) <= 0) {
+      setLoginError("Please enter a valid age");
+      return;
+    }
+
+    if (!pendingGoogleData) {
+      setLoginStep("email");
+      return;
+    }
+
+    const { user, token } = pendingGoogleData;
+    const email = user.email || "";
+
+    const finalProfile: UserProfile = {
+      displayName: user.displayName || email.split("@")[0] || "User",
+      email: email,
+      phone: regPassword.trim(), // Using the form's secondary field as phone map string holder
+      avatar: user.photoURL || AVATARS[0],
+      aiTone: "Professional & Encouraging",
+      aiInstructions: "",
+      age: Number(regAge),
+      username: email.split("@")[0] || "user",
+      accessToken: token
+    };
+
+    setUserProfile(finalProfile);
+    localStorage.setItem(`clutch_profile_${email}`, JSON.stringify(finalProfile));
     if (token) {
       localStorage.setItem(`clutch_google_token_${email}`, token);
     }
+
+    setCurrentUserEmail(email);
     setLoginStep("email");
-    setLoginPassword("");
+    setRegAge("");
+    setRegPassword(""); // clear setup input buffers
     setLoginError(null);
     setIsAuthenticated(true);
     setActiveTab("home");
@@ -536,6 +552,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     setTasks([]);
     setChatMessages([]);
     setChatSessions({});
+    setPendingGoogleData(null);
     setLoginStep("email");
     setLoginEmail("");
     setLoginPassword("");
@@ -656,6 +673,19 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     setChatMessages(initialSessionMessages);
     setAwaitingDeadlineTask(null);
   };
+  const buildCalendarDays = () => {
+    const days: { dayNumber: number; dateString: string; isToday: boolean }[] = [];
+    const year = 2026;
+    for (let d = 1; d <= 30; d++) {
+      const dateStr = `${year}-06-${d.toString().padStart(2, "0")}`;
+      days.push({
+        dayNumber: d,
+        dateString: dateStr,
+        isToday: d === 27
+      });
+    }
+    return days;
+  };
 
   const handleSendAIMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -685,7 +715,6 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     setIsGeneratingAI(true);
 
     try {
-      // Direct pipeline out context to Google Generative Language public API
       const geminiKey = (import.meta as any).env.VITE_GEMINI_API_KEY || "";
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
@@ -718,7 +747,6 @@ I can assist in solving coding or college tasks. Just describe what you need to 
           replyText = "I processed your request, but received an empty response wrapper framework from the cloud API.";
         }
 
-        // Simple text rule parameters logic fallback to catch implicit scheduling intent from messages when API lacks raw JSON keys
         if (userPrompt.toLowerCase().includes("schedule") || userPrompt.toLowerCase().includes("add")) {
           const matchedTitle = userPrompt.replace(/add|schedule|in the calendar/gi, "").trim();
           const targetDay = selectedCalDate; 
@@ -770,20 +798,6 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     }
   };
 
-  const buildCalendarDays = () => {
-    const days: { dayNumber: number; dateString: string; isToday: boolean }[] = [];
-    const year = 2026;
-    for (let d = 1; d <= 30; d++) {
-      const dateStr = `${year}-06-${d.toString().padStart(2, "0")}`;
-      days.push({
-        dayNumber: d,
-        dateString: dateStr,
-        isToday: d === 27
-      });
-    }
-    return days;
-  };
-
   const handleProfileSave = (e: React.FormEvent) => {
     e.preventDefault();
     setSaveToast("Profile updated successfully!");
@@ -817,12 +831,14 @@ I can assist in solving coding or college tasks. Just describe what you need to 
                 C
               </div>
               <h2 className="text-white text-xl font-bold tracking-tight">
-                {loginStep === "register" ? "Create your account" : "Welcome back"}
+                {loginStep === "register" ? "Create your account" : loginStep === "onboarding" ? "Complete Setup" : "Welcome back"}
               </h2>
               <p className="text-sm text-slate-400 max-w-[260px] mt-2 leading-relaxed">
                 {loginStep === "register"
                   ? "Get started with your intelligent context workspace"
-                  : "Empower your workflow with intelligent context automation"}
+                  : loginStep === "onboarding"
+                    ? "Just a couple of extra details to completely configure your workspace layout profile"
+                    : "Empower your workflow with intelligent context automation"}
               </p>
             </div>
 
@@ -1073,6 +1089,73 @@ I can assist in solving coding or college tasks. Just describe what you need to 
               </form>
             )}
 
+            {/* FIRST TIME GOOGLE ONBOARDING FORM FIELD STEP VIEW */}
+            {loginStep === "onboarding" && (
+              <form onSubmit={handleOnboardingSubmit} className="w-full flex flex-col space-y-5">
+                <div className="w-full space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block ml-1">
+                      Your Age
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      max="120"
+                      value={regAge}
+                      onChange={(e) => {
+                        setRegAge(e.target.value);
+                        setLoginError(null);
+                      }}
+                      placeholder="e.g. 21"
+                      className="w-full bg-slate-800/50 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white focus:outline-none text-sm transition placeholder-slate-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block ml-1">
+                      Contact Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={regPassword}
+                      onChange={(e) => {
+                        setRegPassword(e.target.value);
+                        setLoginError(null);
+                      }}
+                      placeholder="e.g. +91 98765 43210"
+                      className="w-full bg-slate-800/50 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white focus:outline-none text-sm transition placeholder-slate-600"
+                    />
+                  </div>
+                </div>
+
+                {loginError && (
+                  <div className="text-red-400 text-xs flex items-start gap-2 text-left w-full bg-red-500/10 p-3 rounded-xl border border-red-500/20 leading-relaxed">
+                    <span className="shrink-0 mt-0.5">⚠️</span>
+                    <span>{loginError}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center w-full pt-4 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleSignOut();
+                    }}
+                    className="text-slate-400 font-bold text-sm hover:text-white transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition shadow-lg shadow-blue-600/20"
+                  >
+                    Complete Setup
+                  </button>
+                </div>
+              </form>
+            )}
+
             {loginStep === "loading" && (
               <div className="w-full flex flex-col items-center py-8 text-center">
                 <h3 className="text-white text-sm font-bold mb-2">Authenticating credentials...</h3>
@@ -1179,7 +1262,6 @@ I can assist in solving coding or college tasks. Just describe what you need to 
                     key={sessionId}
                     onClick={() => {
                       setActiveTopic(topicName);
-                      setActiveSessionId(sessionId);
                     }}
                     className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition text-xs font-mono ${
                       isActive
