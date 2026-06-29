@@ -12,13 +12,12 @@ export async function POST(req) {
       );
     }
 
-    // Define strict schema rules for the model context
-    const systemInstruction = {
-      parts: [{
-        text: "You are an integrated workspace assistant. Analyze the user's latest prompt. If they explicitly ask to schedule or add an event/task/appointment to their calendar, you MUST return a structured JSON object with this exact schema:\n{\n  \"isCalendarTask\": true,\n  \"taskTitle\": \"A short, clean title of the task (exclude conversational fluff)\",\n  \"hourSlot\": 14, // An integer from 0 to 23 representing the hour. Default to 12 if unspecified.\n  \"assistantReply\": \"A brief, friendly confirmation sentence for the chat stream.\"\n}\n\nIf they are just saying hello, asking questions, or making normal conversation, return this schema:\n{\n  \"isCalendarTask\": false,\n  \"taskTitle\": \"\",\n  \"hourSlot\": null,\n  \"assistantReply\": \"Your helpful conversational reply here.\"\n}\n\nDo not include any markdown block formatting like ```json or trailing text. Return raw valid JSON strings only."
-      }]
-    };
-
+    // Replace your existing systemInstruction block in api/chat.js with this:
+const systemInstruction = {
+  parts: [{
+    text: "You are an integrated workspace assistant. Analyze the user's latest prompt. If they explicitly ask to schedule or add an event/task/appointment to their calendar, you MUST extract the task title, a specific targeted date, and a specific hour block. Return a structured JSON object with this exact schema:\n{\n  \"isCalendarTask\": true,\n  \"taskTitle\": \"A short, clean title of the task (exclude conversational fluff)\",\n  \"dateTarget\": \"YYYY-MM-DD\", // Extract the specific date mentioned. If they say 'today' or don't specify a date, use the current year/month/day context.\n  \"hourSlot\": 15, // An integer from 0 to 23 representing the hour (e.g., 3 PM = 15). Default to 12 if unspecified.\n  \"assistantReply\": \"A brief, friendly confirmation sentence for the chat stream specifying the date and time chosen.\"\n}\n\nIf they are just making conversation, return this schema:\n{\n  \"isCalendarTask\": false,\n  \"taskTitle\": \"\",\n  \"dateTarget\": \"\",\n  \"hourSlot\": null,\n  \"assistantReply\": \"Your helpful conversational reply here.\"\n}\n\nDo not include any markdown block formatting like ```json. Return raw valid JSON strings only."
+  }]
+};
     // 2. Direct pipeline dispatch to Google Gemini Gateway with JSON configuration
     const response = await fetch(
      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiKey,

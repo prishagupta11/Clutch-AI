@@ -782,25 +782,24 @@ const handleSendAIMessage = async (e?: React.FormEvent) => {
         let assistantReply = "Could not parse response cleanly.";
         
         try {
-          // 3. ✨ THE PARSE FIX: Decode the structured JSON format string
           const parsedPayload = JSON.parse(rawTextResponse.trim());
           
           assistantReply = parsedPayload.assistantReply || "Done.";
 
-          // 4. ✨ MAP STRUCTURAL PAYLOAD DIRECTLY TO CALENDAR ARRAY STATE
+          
+         
           if (parsedPayload.isCalendarTask && parsedPayload.taskTitle) {
-            
-            // Format 24H integer slot into display time string (e.g. 14 -> "02:00 PM")
-            const targetHour = parsedPayload.hourSlot !== null ? parsedPayload.hourSlot : 12;
-            const period = targetHour >= 12 ? "PM" : "AM";
-            const displayHour = targetHour % 12 || 12;
-            const formattedTimeStr = `${displayHour.toString().padStart(2, "0")}:00 ${period}`;
-
+      // 1. Format the extracted 24H integer slot into display time string
+      const targetHour = parsedPayload.hourSlot !== null ? parsedPayload.hourSlot : 12;
+      const period = targetHour >= 12 ? "PM" : "AM";
+      const displayHour = targetHour % 12 || 12;
+      const formattedTimeStr = `${displayHour.toString().padStart(2, '0')}:00 ${period}`;
+          const finalTargetDate = parsedPayload.dateTarget || selectedCalDate;   
             // Push clean item into your local UI task state engine cleanly
             handleAddNewTask(
               parsedPayload.taskTitle.trim(), 
               "Coding", // Maps directly into default Coding block context
-              selectedCalDate, 
+              finalTargetDate,
               formattedTimeStr
             );
           }
