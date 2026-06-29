@@ -728,30 +728,27 @@ const handleOnboardingSubmit = (e: React.FormEvent) => {
     }));
     setChatMessages(updatedSessionHistory);
     setIsGeneratingAI(true);
-
 try {
-      // Change this variable configuration handle
-    // TS: import.meta.env may not be typed in this project; cast to any to access Vite env vars
-    const geminiKey = ((import.meta as any).env?.VITE_GEMINI_API_KEY as string) || "";
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+  // 🚀 Redirect the fetch call to your new Vercel serverless proxy route
+  const response = await fetch('/api/chat', {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: `System Parameter Directive: You are the Clutch AI Workspace Assistant. Tone requirement is strictly '${userProfile.aiTone}'. Instruction context: ${userProfile.aiInstructions}.` }]
-              },
-              ...updatedSessionHistory.filter(m => m.type !== "system").map(msg => ({
-                role: msg.isUser ? "user" : "model",
-                parts: [{ text: msg.content }]
-              }))
-            ]
-          })
-        }
-      );
+          role: "user",
+          parts: [{ text: `System Parameter Directive: You are the Clutch AI Workspace Assistant. Tone requirement is strictly '${userProfile.aiTone}'. Instruction context: ${userProfile.aiInstructions}.` }]
+        },
+        ...updatedSessionHistory.filter(m => m.type !== "system").map(msg => ({
+          role: msg.isUser ? "user" : "model",
+          parts: [{ text: msg.content }]
+        }))
+      ]
+    })
+  });
+
+  const data = await response.json();
+  // Keep your existing message processing logic below...
 
       if (response.ok) {
         const data = await response.json();
