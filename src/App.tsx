@@ -726,8 +726,7 @@ const handleOnboardingSubmit = (e: React.FormEvent) => {
     const emptySlots = Array.from({ length: firstDayOfMonth }, (_, i) => i);
     return { days, emptySlots };
   };
-
-  const handleSendAIMessage = async (e?: React.FormEvent) => {
+const handleSendAIMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const userPrompt = chatInput.trim();
     if (!userPrompt || isGeneratingAI) return;
@@ -735,19 +734,6 @@ const handleOnboardingSubmit = (e: React.FormEvent) => {
     const userMsgId = Date.now().toString();
     const now = new Date();
     const timestamp = `${now.getHours() % 12 || 12}:${now.getMinutes().toString().padStart(2, "0")} ${now.getHours() >= 12 ? "PM" : "AM"}`;
-
-    // Feature 3: Dynamic sidebar chat title - update session title on first user message
-    const isFirstMessage = (chatSessions[activeSessionId] || []).length === 0;
-    if (isFirstMessage) {
-      const dynamicTitle = formatSessionTitle(userPrompt);
-      const sessionIndex = parseInt(activeTopic.replace("Topic #", "")) - 1;
-      const sessionIds = Object.keys(chatSessions);
-      if (sessionIndex >= 0 && sessionIndex < sessionIds.length) {
-        const currentSessionId = sessionIds[sessionIndex];
-        // We need to update the session title for display in sidebar
-        // Store it in a separate ref for now, or we can use the chat session itself
-      }
-    }
 
     const updatedSessionHistory = [
       ...(chatSessions[activeSessionId] || []),
@@ -766,86 +752,78 @@ const handleOnboardingSubmit = (e: React.FormEvent) => {
     }));
     setChatMessages(updatedSessionHistory);
     setIsGeneratingAI(true);
-try {
-  // 🚀 Redirect the fetch call to your new Vercel serverless proxy route
-  // Feature 5: Engine robustness - ensure correct fetch endpoint and single data stream
-  const response = await fetch('/api/chat', {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `System Parameter Directive: You are the Clutch AI Workspace Assistant. Tone requirement is strictly '${userProfile.aiTone}'. Instruction context: ${userProfile.aiInstructions}.` }]
-        },
-        ...updatedSessionHistory.filter(m => m.type !== "system").map(msg => ({
-          role: msg.isUser ? "user" : "model",
-          parts: [{ text: msg.content }]
-        }))
-      ]
-    })
-  });
 
-  // Keep your existing message processing logic below...
-  if (response.ok) {
-      const data = await response.json();
-      const aiMsgId = (Date.now() + 1).toString();
+    try {
+      // 1. Dispatch payload to your updated Vercel Serverless proxy
+      const response = await fetch('/api/chat', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: `System Parameter Directive: You are the Clutch AI Workspace Assistant. Tone requirement is strictly '${userProfile.aiTone}'. Instruction context: ${userProfile.aiInstructions}.` }]
+            },
+            ...updatedSessionHistory.filter(m => m.type !== "system").map(msg => ({
+              role: msg.isUser ? "user" : "model",
+              parts: [{ text: msg.content }]
+            }))
+          ]
+        })
+      });
 
-      let replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response text found.";
+      if (response.ok) {
+        const rawJsonData = await response.json();
+        const aiMsgId = (Date.now() + 1).toString();
 
-      // 🧠 SMART FILTER: Only schedule if it's an action statement AND NOT a question
-      const promptLower = userPrompt.toLowerCase();
-      const isSchedulingIntent = (promptLower.includes("schedule") || promptLower.includes("add") || promptLower.includes("calendar") || promptLower.includes("callendar"));
-      const isJustAQuestion = (promptLower.includes("which") || promptLower.includes("how") || promptLower.includes("why") || promptLower.includes("what") || promptLower.includes("enable") || promptLower.includes("u had"));
-
-      if (isSchedulingIntent && !isJustAQuestion) {
-        // 1. DYNAMIC TIME EXTRACTION (Pulls exactly what you write, e.g., "1pm", "2:30 pm")
-        let extractedTime = "12:00 PM"; // Smart fallback default
-        const timeRegex = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i;
-        const timeMatch = userPrompt.match(timeRegex);
+        // 2. Extract the raw string from Gemini response packet
+        const rawTextResponse = rawJsonData.candidates?.[0]?.content?.parts?.[0]?.text;
         
-        if (timeMatch) {
-          const hour = timeMatch[1];
-          const minutes = timeMatch[2] || "00";
-          const ampm = timeMatch[3].toUpperCase();
-          extractedTime = `${hour}:${minutes} ${ampm}`;
+        let assistantReply = "Could not parse response cleanly.";
+        
+        try {
+          // 3. ✨ THE PARSE FIX: Decode the structured JSON format string
+          const parsedPayload = JSON.parse(rawTextResponse.trim());
+          
+          assistantReply = parsedPayload.assistantReply || "Done.";
+
+          // 4. ✨ MAP STRUCTURAL PAYLOAD DIRECTLY TO CALENDAR ARRAY STATE
+          if (parsedPayload.isCalendarTask && parsedPayload.taskTitle) {
+            
+            // Format 24H integer slot into display time string (e.g. 14 -> "02:00 PM")
+            const targetHour = parsedPayload.hourSlot !== null ? parsedPayload.hourSlot : 12;
+            const period = targetHour >= 12 ? "PM" : "AM";
+            const displayHour = targetHour % 12 || 12;
+            const formattedTimeStr = `${displayHour.toString().padStart(2, "0")}:00 ${period}`;
+
+            // Push clean item into your local UI task state engine cleanly
+            handleAddNewTask(
+              parsedPayload.taskTitle.trim(), 
+              "Coding", // Maps directly into default Coding block context
+              selectedCalDate, 
+              formattedTimeStr
+            );
+          }
+        } catch (jsonParseError) {
+          // Fallback if model behaves conversationally
+          assistantReply = rawTextResponse || assistantReply;
         }
 
-        // 2. CLEAN TITLE FILTRATION (Strips systemic keywords out completely)
-        let cleanTitle = userPrompt
-          .replace(/at\s+\d{1,2}(?::\d{2})?\s*(am|pm)/i, "")
-          .replace(/add\s+to\s+calendar|add\s+task|add\s+/i, "")
-          .replace(/schedule\s+/i, "")
-          .replace(/in\s+the\s+calendar|to\s+the\s+calendar/i, "")
-          .replace(/in\s+chronos\s+calendar/i, "")
-          .trim();
+        const finalSessionHistory = [
+          ...updatedSessionHistory,
+          {
+            id: aiMsgId,
+            sender: "Clutch AI Agent",
+            content: assistantReply, // Contains just clean text conversation
+            timestamp,
+            isUser: false
+          }
+        ];
 
-        // Capitalize the first letter so the list view looks professional
-        cleanTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
-
-        if (!cleanTitle) {
-          cleanTitle = "Project Submission";
-        }
-
-        // 3. PUSH AUTOMATED ITEM TO THE CALENDAR DATABASE
-        handleAddNewTask(cleanTitle, "General", selectedCalDate, extractedTime);
-      }
-
-      const finalSessionHistory = [
-        ...updatedSessionHistory,
-        {
-          id: aiMsgId,
-          sender: "Clutch AI Agent",
-          content: replyText,
-          timestamp,
-          isUser: false
-        }
-      ];
-
-      setChatSessions((prev) => ({ ...prev, [activeSessionId]: finalSessionHistory }));
-      setChatMessages(finalSessionHistory);
-    } else {      
-      throw new Error("Direct gateway connection rejected. Verify environmental cloud credentials.");
+        setChatSessions((prev) => ({ ...prev, [activeSessionId]: finalSessionHistory }));
+        setChatMessages(finalSessionHistory);
+      } else {      
+        throw new Error("Direct gateway connection rejected.");
       }
     } catch (err) {
       console.error("AI Assistant public network failed:", err);
