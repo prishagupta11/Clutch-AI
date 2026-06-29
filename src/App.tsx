@@ -793,11 +793,14 @@ try {
   const aiMsgId = (Date.now() + 1).toString();
 
   let replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response text found.";
+const promptLower = userPrompt.toLowerCase();
 
-  // 🧠 IMPROVED AI CALENDAR PARSER
-  const promptLower = userPrompt.toLowerCase();
-  if (promptLower.includes("schedule") || promptLower.includes("add") || promptLower.includes("calendar")) {
-    
+// 🧠 SMART FILTER: Check if it's an action statement AND NOT just a generic question/chat message
+const isSchedulingIntent = (promptLower.includes("schedule") || promptLower.includes("add") || promptLower.includes("calendar") || promptLower.includes("callendar"));
+const isJustAQuestion = (promptLower.includes("which") || promptLower.includes("how") || promptLower.includes("why") || promptLower.includes("what") || promptLower.includes("enable") || promptLower.includes("u had"));
+
+if (isSchedulingIntent && !isJustAQuestion) {
+  
     // 1. DYNAMIC TIME EXTRACTION (Pulls exactly what you write, e.g., "1pm", "2:30 pm")
     let extractedTime = "12:00 PM"; // Smart fallback default
     const timeRegex = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i;
