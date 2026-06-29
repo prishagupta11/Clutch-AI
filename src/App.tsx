@@ -1,5 +1,4 @@
 
-const STOP_WORKING_NOW = BREAK_ME!!!;
 import React, { useState, useEffect, useRef } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, googleSignIn, googleSignOut, googleSignInWithIdToken } from "./lib/firebaseAuth";
@@ -101,6 +100,8 @@ export default function App() {
   const [regAge, setRegAge] = useState<string>("");
   const [regEmail, setRegEmail] = useState<string>("");
   const [regPassword, setRegPassword] = useState<string>("");
+const [onboardAge, setOnboardAge] = useState<string>("");
+  const [onboardPhone, setOnboardPhone] = useState<string>("");
 
   // Temporary container for Google users that require metadata setup
   const [pendingGoogleData, setPendingGoogleData] = useState<{ user: any; token: string | undefined } | null>(null);
@@ -380,11 +381,12 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     }
   };
 
-  const handleOnboardingSubmit = (e: React.FormEvent) => {
+const handleOnboardingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
 
-    if (!regAge.trim() || isNaN(Number(regAge)) || Number(regAge) <= 0) {
+    // Change regAge.trim() to onboardAge.trim()
+    if (!onboardAge.trim() || isNaN(Number(onboardAge)) || Number(onboardAge) <= 0) {
       setLoginError("Please enter a valid age");
       return;
     }
@@ -400,11 +402,11 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     const finalProfile: UserProfile = {
       displayName: user.displayName || email.split("@")[0] || "User",
       email: email,
-      phone: regPassword.trim(), // Using the form's secondary field as phone map string holder
+      phone: onboardPhone.trim(), // Explicitly maps your mobile number field
       avatar: user.photoURL || AVATARS[0],
       aiTone: "Professional & Encouraging",
       aiInstructions: "",
-      age: Number(regAge),
+      age: Number(onboardAge),     // Explicitly maps your typed age field
       username: email.split("@")[0] || "user",
       accessToken: token
     };
@@ -417,13 +419,13 @@ I can assist in solving coding or college tasks. Just describe what you need to 
 
     setCurrentUserEmail(email);
     setLoginStep("email");
-    setRegAge("");
-    setRegPassword(""); // clear setup input buffers
+    setOnboardAge("");   // Clear onboarding state values
+    setOnboardPhone(""); // Clear onboarding state values
     setLoginError(null);
     setIsAuthenticated(true);
     setActiveTab("home");
   };
-
+  
   const handleGsiLogin = async (idToken: string) => {
     setLoginStep("loading");
     setLoginError(null);
@@ -1098,7 +1100,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
               </form>
             )}
 
-            {/* FIRST TIME GOOGLE ONBOARDING FORM FIELD STEP VIEW */}
+           {/* FIRST TIME GOOGLE ONBOARDING FORM FIELD STEP VIEW */}
             {loginStep === "onboarding" && (
               <form onSubmit={handleOnboardingSubmit} className="w-full flex flex-col space-y-5">
                 <div className="w-full space-y-4">
@@ -1111,9 +1113,9 @@ I can assist in solving coding or college tasks. Just describe what you need to 
                       required
                       min="1"
                       max="120"
-                      value={regAge}
+                      value={onboardAge} // Linked to clean onboarding state
                       onChange={(e) => {
-                        setRegAge(e.target.value);
+                        setOnboardAge(e.target.value);
                         setLoginError(null);
                       }}
                       placeholder="e.g. 21"
@@ -1127,9 +1129,10 @@ I can assist in solving coding or college tasks. Just describe what you need to 
                     </label>
                     <input
                       type="tel"
-                      value={regPassword}
+                      required
+                      value={onboardPhone} // Linked to clean onboarding state
                       onChange={(e) => {
-                        setRegPassword(e.target.value);
+                        setOnboardPhone(e.target.value);
                         setLoginError(null);
                       }}
                       placeholder="e.g. +91 98765 43210"
@@ -1137,7 +1140,6 @@ I can assist in solving coding or college tasks. Just describe what you need to 
                     />
                   </div>
                 </div>
-
                 {loginError && (
                   <div className="text-red-400 text-xs flex items-start gap-2 text-left w-full bg-red-500/10 p-3 rounded-xl border border-red-500/20 leading-relaxed">
                     <span className="shrink-0 mt-0.5">⚠️</span>
