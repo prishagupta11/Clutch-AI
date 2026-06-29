@@ -1,26 +1,45 @@
 export async function POST(req) {
   try {
-    // 1. Parse incoming payload using standard Web Request API
     const body = await req.json();
     const contents = body.contents || [];
     
     const geminiKey = process.env.GEMINI_API_KEY;
     if (!geminiKey) {
-      return new Response(
-        JSON.stringify({ error: "API configuration key missing on backend" }), 
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Missing API configuration key" }), { status: 500 });
     }
 
-    // Replace your existing systemInstruction block in api/chat.js with this:
-const systemInstruction = {
-  parts: [{
-    text: "You are an integrated workspace assistant. Analyze the user's latest prompt. If they explicitly ask to schedule or add an event/task/appointment to their calendar, you MUST extract the task title, a specific targeted date, and a specific hour block. Return a structured JSON object with this exact schema:\n{\n  \"isCalendarTask\": true,\n  \"taskTitle\": \"A short, clean title of the task (exclude conversational fluff)\",\n  \"dateTarget\": \"YYYY-MM-DD\", // Extract the specific date mentioned. If they say 'today' or don't specify a date, use the current year/month/day context.\n  \"hourSlot\": 15, // An integer from 0 to 23 representing the hour (e.g., 3 PM = 15). Default to 12 if unspecified.\n  \"assistantReply\": \"A brief, friendly confirmation sentence for the chat stream specifying the date and time chosen.\"\n}\n\nIf they are just making conversation, return this schema:\n{\n  \"isCalendarTask\": false,\n  \"taskTitle\": \"\",\n  \"dateTarget\": \"\",\n  \"hourSlot\": null,\n  \"assistantReply\": \"Your helpful conversational reply here.\"\n}\n\nDo not include any markdown block formatting like ```json. Return raw valid JSON strings only."
-  }]
-};
-    // 2. Direct pipeline dispatch to Google Gemini Gateway with JSON configuration
+    // Dynamic date lookup so "today", "tomorrow", and "this Friday" calculate correctly
+    const formattedToday = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    });
+
+    const systemInstruction = {
+      parts: [{
+        text: `You are an integrated workspace assistant. The current date context for the user right now is exactly: ${formattedToday}.
+
+CRITICAL INTENT RULES:
+1. ONLY return 'isCalendarTask: true' if the user is explicitly commanding you to add, write, log, or schedule a fresh new item onto their calendar layout.
+2. If the user is asking for guidance, tips, explanations, code blocks, or extra instructions to complete an ongoing or existing objective (e.g., 'give me tips on...', 'help me with...', 'how do I code...'), you MUST treat this as a standard chat query. Set 'isCalendarTask: false' and do NOT return a target date or title for a calendar slot.
+3. When 'isCalendarTask: true' is valid, evaluate the date entity (like 'today', 'tomorrow', 'this Friday', or 'July 10th') relative to the baseline current date string provided above and return the destination strictly in YYYY-MM-DD format.
+
+Your response MUST be a strict, raw JSON object matching this schema:
+{
+  "isCalendarTask": true or false,
+  "taskTitle": "A clean title of the task (or empty string if false)",
+  "dateTarget": "YYYY-MM-DD format string calculated precisely (or empty string if false)",
+  "hourSlot": 0 to 23 integer representing the targeted hour (or null if false)",
+  "assistantReply": "Your conversation chat stream text, tips, guidance, or scheduling confirmation message goes entirely here."
+}
+
+Do not wrap your output in markdown syntax or code fences like \`\`\`json. Return raw valid JSON strings only.`
+      }]
+    };
+
     const response = await fetch(
-     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiKey,
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiKey,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -28,7 +47,7 @@ const systemInstruction = {
           contents: contents,
           systemInstruction: systemInstruction,
           generationConfig: {
-            responseMimeType: "application/json" // Force structural validation
+            responseMimeType: "application/json"
           }
         }),
       }
@@ -36,24 +55,13 @@ const systemInstruction = {
 
     if (!response.ok) {
       const errorText = await response.text();
-      return new Response(
-        JSON.stringify({ error: "Gemini rejected prompt structured data", details: errorText }), 
-        { status: response.status, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Gemini execution failure", details: errorText }), { status: response.status });
     }
 
     const data = await response.json();
-    
-    // 3. Output clean JSON using native standard web response modules
-    return new Response(
-      JSON.stringify(data), 
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
 
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message || "Internal Execution Fail" }), 
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }

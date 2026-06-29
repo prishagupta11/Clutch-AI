@@ -781,32 +781,31 @@ const handleSendAIMessage = async (e?: React.FormEvent) => {
         
         let assistantReply = "Could not parse response cleanly.";
         
-        try {
-          const parsedPayload = JSON.parse(rawTextResponse.trim());
-          
-          assistantReply = parsedPayload.assistantReply || "Done.";
+       try {
+    const parsedPayload = JSON.parse(rawTextResponse.trim());
+    assistantReply = parsedPayload.assistantReply || "Done.";
 
-          
-         
-          if (parsedPayload.isCalendarTask && parsedPayload.taskTitle) {
-      // 1. Format the extracted 24H integer slot into display time string
+    // 🔒 ABSOLUTE LOCKOUT: Must have explicit true signal AND a structured target destination string
+    if (parsedPayload.isCalendarTask && parsedPayload.taskTitle && parsedPayload.dateTarget) {
+      
       const targetHour = parsedPayload.hourSlot !== null ? parsedPayload.hourSlot : 12;
       const period = targetHour >= 12 ? "PM" : "AM";
       const displayHour = targetHour % 12 || 12;
       const formattedTimeStr = `${displayHour.toString().padStart(2, '0')}:00 ${period}`;
-          const finalTargetDate = parsedPayload.dateTarget || selectedCalDate;   
-            // Push clean item into your local UI task state engine cleanly
-            handleAddNewTask(
-              parsedPayload.taskTitle.trim(), 
-              "Coding", // Maps directly into default Coding block context
-              finalTargetDate,
-              formattedTimeStr
-            );
-          }
-        } catch (jsonParseError) {
-          // Fallback if model behaves conversationally
-          assistantReply = rawTextResponse || assistantReply;
-        }
+
+      const strictTargetDate = parsedPayload.dateTarget.trim(); // Reads exact YYYY-MM-DD generated string
+
+      // Commits purely under that precise target timestamp node layout index
+      handleAddNewTask(
+        parsedPayload.taskTitle.trim(), 
+        "Coding", 
+        strictTargetDate, 
+        formattedTimeStr
+      );
+    }
+  } catch (jsonParseError) {
+    assistantReply = rawTextResponse || assistantReply;
+  }
 
         const finalSessionHistory = [
           ...updatedSessionHistory,
