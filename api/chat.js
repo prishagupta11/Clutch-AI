@@ -1,37 +1,47 @@
-
-export default async function handler(req, res) {
-  // Clear CORS barriers
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
+export async function POST(req) {
   try {
-    const geminiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+    // 1. Parse incoming payload using standard Web Request API
+    const body = await req.json();
+    const contents = body.contents || [];
+    
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+      return new Response(
+        JSON.stringify({ error: "API configuration key missing on backend" }), 
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
-   const googleResponse = await fetch(
+    // 2. Direct pipeline dispatch to Google Gemini Gateway
+    const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req.body)
+        body: JSON.stringify({ contents: contents }),
       }
     );
 
-    const data = await googleResponse.json();
-
-    // 🚀 THE FIX: If Google gives back an error, pass it right down so we see it
-    if (data.error) {
-      return res.status(400).json({ error: data.error });
+    if (!response.ok) {
+      const errorText = await response.text();
+      return new Response(
+        JSON.stringify({ error: "Gemini rejected prompt structured data", details: errorText }), 
+        { status: response.status, headers: { "Content-Type": "application/json" } }
+      );
     }
 
-    // Pass the clean Gemini response data straight to the frontend
-    return res.status(200).json(data);
+    const data = await response.json();
+    
+    // 3. Output clean JSON using native standard web response modules
+    return new Response(
+      JSON.stringify(data), 
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return new Response(
+      JSON.stringify({ error: error.message || "Internal Execution Fail" }), 
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 }
