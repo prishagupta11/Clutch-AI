@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export async function POST(req) {
   try {
     const { message } = await req.json();
-    const geminiKey = process.env.GEMINI_API_KEY;
+    const geminiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
     // We instruct Gemini to act as an orchestrator and return clean JSON
     const promptPayload = {
