@@ -716,7 +716,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
 
     try {
       // 🚀 Connect straight to Google's public client API gateway
-      const geminiKey = (import.meta as any).env.VITE_GEMINI_API_KEY || "";
+      const geminiKey = (import.meta as any).env.GEMINI_API_KEY || "";
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
         {
@@ -774,7 +774,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
         {
           id: aiMsgId,
           sender: "System",
-          content: `❌ **Connection Status Flagged:** Direct secure pipeline to Gemini failed. Ensure your environment contains a valid \`VITE_GEMINI_API_KEY\` configuration parameter inside your sandbox configuration block layout.`,
+          content: `❌ **Connection Status Flagged:** Direct secure pipeline to Gemini failed. Ensure your environment contains a valid \`GEMINI_API_KEY\` configuration parameter inside your sandbox configuration block layout.`,
           timestamp,
           isUser: false
         }
