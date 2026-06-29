@@ -87,7 +87,7 @@ export default function App() {
 
   const [currentTime, setCurrentTime] = useState<string>("10:00 AM");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>("canvascoreco@gmail.com");
 
   const [loginStep, setLoginStep] = useState<"email" | "password" | "register" | "loading">("email");
   const [loginEmail, setLoginEmail] = useState<string>("");
@@ -103,7 +103,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<"home" | "ai" | "calendar" | "profile">("home");
 
   // Chat Topics state - tracks the active selected topic
-  const [activeTopic, setActiveTopic] = useState("Topic #3");
+  const [activeTopic, setActiveTopic] = useState("Topic #1");
 
   const [userProfile, setUserProfile] = useState<UserProfile>({
     displayName: "",
@@ -121,7 +121,7 @@ export default function App() {
 
   const [chatInput, setChatInput] = useState<string>("");
   const [chatSessions, setChatSessions] = useState<{[sessionId: string]: ChatMessage[]}>({});
-  const [activeSessionId, setActiveSessionId] = useState<string>("default");
+  const [activeSessionId, setActiveSessionId] = useState<string>("session-1");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isGeneratingAI, setIsGeneratingAI] = useState<boolean>(false);
   const [awaitingDeadlineTask, setAwaitingDeadlineTask] = useState<string | null>(null);
@@ -150,7 +150,7 @@ export default function App() {
           ...prev,
           displayName: user.displayName || user.email?.split("@")[0] || "User",
           email: email,
-          phone: user.phoneNumber || "",
+          phone: user.phoneNumber || prev.phone || "",
           avatar: user.photoURL || prev.avatar,
           accessToken: storedToken || prev.accessToken
         }));
@@ -229,12 +229,11 @@ export default function App() {
       const sessionsData = storedSessions ? JSON.parse(storedSessions) : {};
 
       if (Object.keys(sessionsData).length === 0) {
-        // Create default session if none exists
         const defaultSession: ChatMessage[] = [
           {
             id: "ai-init",
             sender: "Clutch AI Agent",
-            content: `Welcome back, ${currentUserEmail.split("@")[0]}! Your Google workspace and previously stored objectives are securely synchronized.
+            content: `Welcome back, ${currentUserEmail.split("@")[0]}! Your Google workspace and objectives are securely synchronized.
 
 I can assist in solving coding or college tasks. Just describe what you need to build, and I will outline the solution. Later, I will ask for a deadline to schedule it onto your calendar and suggest the best hour to begin!`,
             timestamp: "10:00 AM",
@@ -242,17 +241,15 @@ I can assist in solving coding or college tasks. Just describe what you need to 
             type: "system"
           }
         ];
-        const initialSessions = { "default": defaultSession };
+        const initialSessions = { "session-1": defaultSession };
         setChatSessions(initialSessions);
-        setActiveSessionId("default");
+        setActiveSessionId("session-1");
         setChatMessages(defaultSession);
         localStorage.setItem(`clutch_chat_sessions_${currentUserEmail}`, JSON.stringify(initialSessions));
       } else {
         setChatSessions(sessionsData);
-        // Use first session or "default" as active
         const firstSessionId = Object.keys(sessionsData)[0];
         setActiveSessionId(firstSessionId);
-        // Set chatMessages from the active session
         setChatMessages(sessionsData[firstSessionId] || []);
       }
     }
@@ -283,20 +280,12 @@ I can assist in solving coding or college tasks. Just describe what you need to 
       const sessionIndex = parseInt(activeTopic.replace("Topic #", "")) - 1;
       const sessionIds = Object.keys(chatSessions);
       if (sessionIndex >= 0 && sessionIndex < sessionIds.length) {
-        setActiveSessionId(sessionIds[sessionIndex]);
+        const chosenId = sessionIds[sessionIndex];
+        setActiveSessionId(chosenId);
+        setChatMessages(chatSessions[chosenId] || []);
       }
     }
-  }, [activeTopic, chatSessions]);
-
-  // Sync activeSessionId changes to activeTopic for sidebar selection
-  useEffect(() => {
-    const sessionIds = Object.keys(chatSessions);
-    const sessionIndex = sessionIds.indexOf(activeSessionId);
-    if (sessionIndex >= 0) {
-      const topicName = `Topic #${sessionIndex + 1}`;
-      setActiveTopic(topicName);
-    }
-  }, [activeSessionId, chatSessions]);
+  }, [activeTopic]);
 
   useEffect(() => {
     const updateTime = () => {
@@ -546,6 +535,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     setIsAuthenticated(false);
     setTasks([]);
     setChatMessages([]);
+    setChatSessions({});
     setLoginStep("email");
     setLoginEmail("");
     setLoginPassword("");
@@ -676,132 +666,105 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     const now = new Date();
     const timestamp = `${now.getHours() % 12 || 12}:${now.getMinutes().toString().padStart(2, "0")} ${now.getHours() >= 12 ? "PM" : "AM"}`;
 
-    // Add user message to current session
-    setChatSessions((prev) => ({
-      ...prev,
-      [activeSessionId]: [
-        ...(prev[activeSessionId] || []),
-        {
-          id: userMsgId,
-          sender: userProfile.displayName,
-          content: userPrompt,
-          timestamp,
-          isUser: true
-        }
-      ]
-    }));
-
-    setIsGeneratingAI(true);
-
-    // Build history from current session
-    const currentSessionMessages = chatSessions[activeSessionId] || [];
-    const historyWithNewMessage = [
-      ...currentSessionMessages,
+    const updatedSessionHistory = [
+      ...(chatSessions[activeSessionId] || []),
       {
         id: userMsgId,
-        sender: userProfile.displayName,
+        sender: userProfile.displayName || "User",
         content: userPrompt,
         timestamp,
         isUser: true
       }
     ];
 
+    setChatSessions((prev) => ({
+      ...prev,
+      [activeSessionId]: updatedSessionHistory
+    }));
+    setChatMessages(updatedSessionHistory);
+    setIsGeneratingAI(true);
+
     try {
-      const response = await fetch("/api/gemini/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: userPrompt,
-          tasks: tasks,
-          aiTone: userProfile.aiTone,
-          aiInstructions: userProfile.aiInstructions,
-          awaitingDeadlineTask: awaitingDeadlineTask,
-          accessToken: userProfile.accessToken,
-          history: historyWithNewMessage
-        })
-      });
+      // Direct pipeline out context to Google Generative Language public API
+      const geminiKey = (import.meta as any).env.VITE_GEMINI_API_KEY || "";
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: `System Parameter Directive: You are the Clutch AI Workspace Assistant. Tone requirement is strictly '${userProfile.aiTone}'. Instruction context: ${userProfile.aiInstructions}. Current calendar tasks snapshot payload: ${JSON.stringify(tasks)}. If the user explicitly commands to schedule a new task card, return your structured content string along with JSON parsing notation inside blocks representing dates and hours.` }]
+              },
+              ...updatedSessionHistory.filter(m => m.type !== "system").map(msg => ({
+                role: msg.isUser ? "user" : "model",
+                parts: [{ text: msg.content }]
+              }))
+            ]
+          })
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
         const aiMsgId = (Date.now() + 1).toString();
-
-        // Add AI response to current session
-        setChatSessions((prev) => ({
-          ...prev,
-          [activeSessionId]: [
-            ...(prev[activeSessionId] || []),
-            {
-              id: aiMsgId,
-              sender: "Clutch AI Agent",
-              content: data.reply,
-              timestamp,
-              isUser: false
-            }
-          ]
-        }));
-
-        // Update chatMessages with the current session messages
-        const updatedSessionMessages = [...(chatSessions[activeSessionId] || []), {
-            id: aiMsgId,
-            sender: "Clutch AI Agent",
-            content: data.reply,
-            timestamp,
-            isUser: false
-        }];
-        setChatMessages(updatedSessionMessages);
-
-        if (data.suggestedTasks && data.suggestedTasks.length > 0) {
-          data.suggestedTasks.forEach((sTask: any) => {
-            // Use the actual dueDate and dueTime from the API response, not hardcoded values
-            handleAddNewTask(
-              sTask.title,
-              sTask.category || "General",
-              sTask.dueDate,
-              sTask.dueTime
-            );
-          });
+        
+        let replyText = "";
+        if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+          replyText = data.candidates[0].content.parts[0].text;
+        } else {
+          replyText = "I processed your request, but received an empty response wrapper framework from the cloud API.";
         }
-        if (data.detectedTaskName && !data.clearAwaitingDeadline) {
-          setAwaitingDeadlineTask(data.detectedTaskName);
-        } else if (data.clearAwaitingDeadline) {
-          setAwaitingDeadlineTask(null);
-        }
-      } else {
-        throw new Error("Network error: Could not connect to AI service.");
-      }
-    } catch (err) {
-      console.error("AI Assistant network failed:", err);
-      const errorMsg = err instanceof Error ? err.message : "Network error: Could not connect to AI service.";
-      const aiMsgId = (Date.now() + 1).toString();
-      const now = new Date();
-      const timestamp = `${now.getHours() % 12 || 12}:${now.getMinutes().toString().padStart(2, "0")} ${now.getHours() >= 12 ? "PM" : "AM"}`;
 
-      // Add error message to current session instead of mock simulator
-      setChatSessions((prev) => ({
-        ...prev,
-        [activeSessionId]: [
-          ...(prev[activeSessionId] || []),
+        // Simple text rule parameters logic fallback to catch implicit scheduling intent from messages when API lacks raw JSON keys
+        if (userPrompt.toLowerCase().includes("schedule") || userPrompt.toLowerCase().includes("add")) {
+          const matchedTitle = userPrompt.replace(/add|schedule|in the calendar/gi, "").trim();
+          const targetDay = selectedCalDate; 
+          handleAddNewTask(matchedTitle || "Project update", "General", targetDay, "02:00 PM");
+        }
+
+        const finalSessionHistory = [
+          ...updatedSessionHistory,
           {
             id: aiMsgId,
-            sender: "System",
-            content: `❌ **Error:** ${errorMsg}\n\nPlease check your internet connection and try again.`,
+            sender: "Clutch AI Agent",
+            content: replyText,
             timestamp,
             isUser: false
           }
-        ]
-      }));
+        ];
 
-      // Update chatMessages with the error message
-      setChatMessages((prev) => [
-        ...prev,
+        setChatSessions((prev) => ({
+          ...prev,
+          [activeSessionId]: finalSessionHistory
+        }));
+        setChatMessages(finalSessionHistory);
+
+      } else {
+        throw new Error("Direct gateway connection rejected. Verify environmental cloud credentials.");
+      }
+    } catch (err) {
+      console.error("AI Assistant public network failed:", err);
+      const aiMsgId = (Date.now() + 1).toString();
+      
+      const errorSessionHistory = [
+        ...updatedSessionHistory,
         {
           id: aiMsgId,
           sender: "System",
-          content: `❌ **Error:** ${errorMsg}\n\nPlease check your internet connection and try again.`,
+          content: `❌ **Connection Status Flagged:** Direct secure pipeline to Gemini failed. Ensure your environment contains a valid \`VITE_GEMINI_API_KEY\` configuration parameter inside your sandbox configuration block layout.`,
           timestamp,
           isUser: false
         }
-      ]);
+      ];
+
+      setChatSessions((prev) => ({
+        ...prev,
+        [activeSessionId]: errorSessionHistory
+      }));
+      setChatMessages(errorSessionHistory);
     } finally {
       setIsGeneratingAI(false);
     }
@@ -1208,9 +1171,8 @@ I can assist in solving coding or college tasks. Just describe what you need to 
               </button>
             </div>
             <div className="space-y-1 max-h-[120px] overflow-y-auto custom-scrollbar">
-              {Object.keys(chatSessions).map((sessionId) => {
-                const sessionMessages = chatSessions[sessionId];
-                const topicName = `Topic #${Object.keys(chatSessions).indexOf(sessionId) + 1}`;
+              {Object.keys(chatSessions).map((sessionId, index) => {
+                const topicName = `Topic #${index + 1}`;
                 const isActive = activeTopic === topicName;
                 return (
                   <button
@@ -1229,9 +1191,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
                       isActive ? "bg-blue-400" : "bg-slate-600"
                     }`} />
                     <span className="truncate flex-1">
-                      {sessionMessages.length > 0
-                        ? topicName
-                        : "New Topic"}
+                      {topicName}
                     </span>
                   </button>
                 );
@@ -1511,7 +1471,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
 
               <div className="flex items-center justify-between px-1">
                 <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-                  Session: #{Object.keys(chatSessions).indexOf(activeSessionId) + 1}
+                  Session: {activeTopic}
                 </span>
                 <button
                   onClick={handleCreateNewTopic}
@@ -1530,7 +1490,9 @@ I can assist in solving coding or college tasks. Just describe what you need to 
                       className={`p-4 rounded-xl border ${
                         m.isUser
                           ? "bg-gradient-to-br from-blue-600/20 to-blue-500/10 border-blue-500/30 self-end text-white"
-                          : "bg-gradient-to-br from-slate-700/50 to-slate-600/50 border-slate-600 text-white"
+                          : m.type === "system"
+                            ? "bg-slate-900/40 border-slate-800 text-slate-400 italic font-mono text-center"
+                            : "bg-gradient-to-br from-slate-700/50 to-slate-600/50 border-slate-600 text-white"
                       }`}
                     >
                       <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-2.5">
@@ -1871,10 +1833,10 @@ I can assist in solving coding or college tasks. Just describe what you need to 
                     </label>
                     <input
                       type="text"
-                      required
                       value={userProfile.phone}
                       onChange={(e) => setUserProfile({ ...userProfile, phone: e.target.value })}
-                      className="w-full bg-slate-800/50 border border-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl px-4 py-3 text-white focus:outline-none text-sm transition"
+                      placeholder="Enter contact number..."
+                      className="w-full bg-slate-800/50 border border-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl px-4 py-3 text-white focus:outline-none text-sm transition placeholder-slate-600"
                     />
                   </div>
                 </div>
