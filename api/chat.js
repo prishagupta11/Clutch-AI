@@ -1,7 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Fix CORS headers so your frontend can talk to this serverless route
+export default async function handler(req, res) {
+  // Clear CORS barriers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -12,10 +11,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Vercel securely reads the key on the server side where it's completely hidden
     const geminiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
-    const response = await fetch(
+    // Send request exactly to the Gemini 1.5 Flash API endpoint
+    const googleResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
       {
         method: "POST",
@@ -24,9 +23,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     );
 
-    const data = await response.json();
+    const data = await googleResponse.json();
+
+    // 🚀 THE FIX: If Google gives back an error, pass it right down so we see it
+    if (data.error) {
+      return res.status(400).json({ error: data.error });
+    }
+
+    // Pass the clean Gemini response data straight to the frontend
     return res.status(200).json(data);
-  } catch (error: any) {
+  } catch (error) {
     return res.status(500).json({ error: error.message });
   }
 }
