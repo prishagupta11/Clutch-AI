@@ -1743,7 +1743,7 @@ try {
 
           {activeTab === "calendar" && (
             <div className="flex-1 overflow-y-auto p-5 md:p-8 space-y-6 custom-scrollbar">
-              {/* Feature 1: Calendar navigation fix - Prev/Next buttons */}
+              {/* Feature 1: Calendar navigation fix - Prev/Next buttons with month/year controls */}
               <div className="flex justify-between items-center bg-gradient-to-r from-slate-800 to-slate-700 px-4 py-3 rounded-xl border border-slate-700 shadow-sm select-none shrink-0">
                 <button
                   onClick={() => {
@@ -1759,9 +1759,25 @@ try {
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <span className="text-white font-bold font-mono text-sm uppercase tracking-widest capitalize">
-                  {new Date(calendarYear, calendarMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                </span>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={calendarMonth}
+                    onChange={(e) => setCalendarMonth(Number(e.target.value))}
+                    className="bg-transparent text-white font-bold font-mono text-sm uppercase tracking-widest focus:outline-none cursor-pointer hover:text-blue-400 transition"
+                  >
+                    {["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map((month, idx) => (
+                      <option key={month} value={idx} className="bg-slate-800 text-zinc-200">
+                        {month}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    value={calendarYear}
+                    onChange={(e) => setCalendarYear(Number(e.target.value))}
+                    className="bg-transparent text-white font-mono text-sm focus:outline-none w-20 border-b border-slate-600 hover:border-slate-500 transition cursor-pointer hover:text-blue-400"
+                  />
+                </div>
                 <button
                   onClick={() => {
                     if (calendarMonth === 11) {
