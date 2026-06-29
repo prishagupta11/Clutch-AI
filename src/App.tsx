@@ -1803,9 +1803,9 @@ try {
                 {(() => {
                   const { days, emptySlots } = buildCalendarDays(calendarMonth, calendarYear);
                   return (
-                    <>
+                    <div className="grid grid-cols-7 gap-2 mt-2 w-full text-center">
                       {emptySlots.map((_, idx) => (
-                        <div key={`empty-${idx}`} className="h-9"></div>
+                        <div key={`empty-${idx}`} className="aspect-square"></div>
                       ))}
                       {days.map((d) => {
                         const dayTasks = tasks.filter((t) => t.dueDate === d.dateString);
@@ -1815,7 +1815,7 @@ try {
                           <button
                             key={d.dayNumber}
                             onClick={() => setSelectedCalDate(d.dateString)}
-                            className={`h-9 rounded-xl font-mono relative flex flex-col items-center justify-center transition-all ${
+                            className={`aspect-square rounded-xl font-mono relative flex items-center justify-center transition-all ${
                               isSelected
                                 ? "bg-blue-600 text-white font-bold scale-110 shadow-lg shadow-blue-600/30"
                                 : d.isToday
@@ -1845,7 +1845,7 @@ try {
                           </button>
                         );
                       })}
-                    </>
+                    </div>
                   );
                 })()}
               </div>
