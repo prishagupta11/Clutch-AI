@@ -1,3 +1,5 @@
+
+const STOP_WORKING_NOW = BREAK_ME!!!;
 import React, { useState, useEffect, useRef } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, googleSignIn, googleSignOut, googleSignInWithIdToken } from "./lib/firebaseAuth";
