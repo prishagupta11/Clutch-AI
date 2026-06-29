@@ -787,64 +787,65 @@ try {
   });
 
   // Keep your existing message processing logic below...
-  // Feature 5: Proper handling - single .json() parsing, no secondary parsing
- if (response.ok) {
-  const data = await response.json();
-  const aiMsgId = (Date.now() + 1).toString();
+  if (response.ok) {
+      const data = await response.json();
+      const aiMsgId = (Date.now() + 1).toString();
 
-  let replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response text found.";
+      let replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response text found.";
 
-  // 🧠 IMPROVED AI CALENDAR PARSER
-  const promptLower = userPrompt.toLowerCase();
-  if (promptLower.includes("schedule") || promptLower.includes("add") || promptLower.includes("calendar")) {
-    
-    // 1. DYNAMIC TIME EXTRACTION (Pulls exactly what you write, e.g., "1pm", "2:30 pm")
-    let extractedTime = "12:00 PM"; // Smart fallback default
-    const timeRegex = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i;
-    const timeMatch = userPrompt.match(timeRegex);
-    
-    if (timeMatch) {
-      const hour = timeMatch[1];
-      const minutes = timeMatch[2] || "00";
-      const ampm = timeMatch[3].toUpperCase();
-      extractedTime = `${hour}:${minutes} ${ampm}`;
-    }
+      // 🧠 SMART FILTER: Only schedule if it's an action statement AND NOT a question
+      const promptLower = userPrompt.toLowerCase();
+      const isSchedulingIntent = (promptLower.includes("schedule") || promptLower.includes("add") || promptLower.includes("calendar") || promptLower.includes("callendar"));
+      const isJustAQuestion = (promptLower.includes("which") || promptLower.includes("how") || promptLower.includes("why") || promptLower.includes("what") || promptLower.includes("enable") || promptLower.includes("u had"));
 
-    // 2. CLEAN TITLE FILTRATION (Strips systemic keywords out completely)
-    let cleanTitle = userPrompt
-      .replace(/at\s+\d{1,2}(?::\d{2})?\s*(am|pm)/i, "") // Removes "at 1pm", "at 2:00pm"
-      .replace(/add\s+to\s+calendar|add\s+task|add\s+/i, "") // Removes "add to calendar", "add task"
-      .replace(/schedule\s+/i, "") // Removes "schedule"
-      .replace(/in\s+the\s+calendar|to\s+the\s+calendar/i, "") // Removes trailing variants
-      .replace(/in\s+chronos\s+calendar/i, "") // Removes your exact system name text
-      .trim();
+      if (isSchedulingIntent && !isJustAQuestion) {
+        // 1. DYNAMIC TIME EXTRACTION (Pulls exactly what you write, e.g., "1pm", "2:30 pm")
+        let extractedTime = "12:00 PM"; // Smart fallback default
+        const timeRegex = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i;
+        const timeMatch = userPrompt.match(timeRegex);
+        
+        if (timeMatch) {
+          const hour = timeMatch[1];
+          const minutes = timeMatch[2] || "00";
+          const ampm = timeMatch[3].toUpperCase();
+          extractedTime = `${hour}:${minutes} ${ampm}`;
+        }
 
-    // Capitalize the first letter so the list view looks professional
-    cleanTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
+        // 2. CLEAN TITLE FILTRATION (Strips systemic keywords out completely)
+        let cleanTitle = userPrompt
+          .replace(/at\s+\d{1,2}(?::\d{2})?\s*(am|pm)/i, "")
+          .replace(/add\s+to\s+calendar|add\s+task|add\s+/i, "")
+          .replace(/schedule\s+/i, "")
+          .replace(/in\s+the\s+calendar|to\s+the\s+calendar/i, "")
+          .replace(/in\s+chronos\s+calendar/i, "")
+          .trim();
 
-    // If string becomes completely blank after filtering, default back gracefully
-    if (!cleanTitle) {
-      cleanTitle = "Project Submission";
-    }
+        // Capitalize the first letter so the list view looks professional
+        cleanTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
 
-    // 3. PUSH AUTOMATED ITEM TO THE CALENDAR DATABASE
-    handleAddNewTask(cleanTitle, "General", selectedCalDate, extractedTime);
-  }
-        const finalSessionHistory = [
-          ...updatedSessionHistory,
-          {
-            id: aiMsgId,
-            sender: "Clutch AI Agent",
-            content: replyText,
-            timestamp,
-            isUser: false
-          }
-        ];
+        if (!cleanTitle) {
+          cleanTitle = "Project Submission";
+        }
 
-        setChatSessions((prev) => ({ ...prev, [activeSessionId]: finalSessionHistory }));
-        setChatMessages(finalSessionHistory);
-      } else {
-        throw new Error("Direct gateway connection rejected. Verify environmental cloud credentials.");
+        // 3. PUSH AUTOMATED ITEM TO THE CALENDAR DATABASE
+        handleAddNewTask(cleanTitle, "General", selectedCalDate, extractedTime);
+      }
+
+      const finalSessionHistory = [
+        ...updatedSessionHistory,
+        {
+          id: aiMsgId,
+          sender: "Clutch AI Agent",
+          content: replyText,
+          timestamp,
+          isUser: false
+        }
+      ];
+
+      setChatSessions((prev) => ({ ...prev, [activeSessionId]: finalSessionHistory }));
+      setChatMessages(finalSessionHistory);
+    } else {      
+      throw new Error("Direct gateway connection rejected. Verify environmental cloud credentials.");
       }
     } catch (err) {
       console.error("AI Assistant public network failed:", err);
