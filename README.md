@@ -36,7 +36,7 @@ Clutch AI is an advanced, context-aware student productivity ecosystem integrate
     "assistantReply": "I have successfully logged that task for you!"
   }
 
-  ---
+---
 
   ## Repository Directory Layout
 ├── api/
