@@ -844,15 +844,23 @@ I can assist in solving coding or college tasks. Just describe what you need to 
 
             {loginStep === "email" && (
               <div className="w-full flex flex-col">
-           <button
-  type="button"
-  onClick={triggerRealGoogleLogin}
-  className="w-full flex items-center justify-center gap-3 py-3 px-5 bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-900 font-bold rounded-xl border border-gray-200 text-sm transition shadow-lg shadow-gray-500/10 cursor-pointer group"
->
-  {/* 🌟 Swapped the broken raw path string for an indestructible Chrome icon layout */}
-  <Cpu className="w-5 h-5 text-blue-600 shrink-0" />
-  <span className="font-semibold text-slate-900">Continue with Google</span>
-</button>
+                <button
+                  type="button"
+                  onClick={triggerRealGoogleLogin}
+                  className="w-full flex items-center justify-center gap-3 py-3 px-5 bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-900 font-bold rounded-xl border border-gray-200 text-sm transition shadow-lg shadow-gray-500/10 cursor-pointer group"
+                >
+               <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+  <path
+    fill="#EA4335"
+    d="M12 24c6.6 0 12-5.4 12-12S18.6 0 12 0 0 5.4 0 12s5.4 12 12 12z"
+  />
+  <path
+    fill="#FFF"
+    d="M21.1 10.3H12v3.4h5.2c-.2 1.2-1 2.3-2.1 3l3.2 2.5c1.9-1.8 3-4.4 3-7.2.1-.6 0-1.1-.2-1.7z"
+  />
+</svg>
+                  <span className="font-semibold">Continue with Google</span>
+                </button>
 
                 <div className="flex items-center gap-4 w-full my-6 select-none">
                   <span className="h-px bg-slate-800 flex-1"></span>
