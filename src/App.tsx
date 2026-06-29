@@ -1265,31 +1265,48 @@ try {
               </button>
             </div>
             <div className="space-y-1 max-h-[120px] overflow-y-auto custom-scrollbar">
-              {Object.keys(chatSessions).map((sessionId, index) => {
-                const topicName = `Topic #${index + 1}`;
-                const isActive = activeTopic === topicName;
-                return (
-                  <button
-                    key={sessionId}
-                    onClick={() => {
-                      setActiveTopic(topicName);
-                    }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition text-xs font-mono ${
-                      isActive
-                        ? "bg-blue-600/20 border border-blue-500/30 text-blue-300"
-                        : "text-zinc-400 hover:bg-slate-700/50 hover:text-zinc-200"
-                    }`}
-                  >
-                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      isActive ? "bg-blue-400" : "bg-slate-600"
-                    }`} />
-                    <span className="truncate flex-1">
-                      {topicName}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            
+            {Object.keys(chatSessions).map((sessionId, index) => {
+  const topicName = `Topic #${index + 1}`;
+  const isActive = activeTopic === topicName;
+  return (
+    <button
+      key={sessionId}
+      onClick={() => {
+        setActiveTopic(topicName);
+      }}
+      className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left transition text-xs font-mono group ${
+        isActive
+          ? "bg-blue-600/20 border border-blue-500/30 text-blue-300"
+          : "text-zinc-400 hover:bg-slate-700/50 hover:text-zinc-200"
+      }`}
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? "bg-blue-400" : "bg-slate-600"}`} />
+        <span className="truncate flex-1">{topicName}</span>
+      </div>
+
+      {/* 🛠️ THE EXACT FIX: Remove the length > 1 check, add custom click handling & show on group hover */}
+      <span 
+        onClick={(e) => {
+          e.stopPropagation(); // Prevents clicking the tab select action
+          const updatedSessions = { ...chatSessions };
+          if (Object.keys(updatedSessions).length > 1) {
+            delete updatedSessions[sessionId];
+            setChatSessions(updatedSessions);
+            setActiveSessionId(Object.keys(updatedSessions)[0]);
+            setActiveTopic("Topic #1");
+          }
+        }}
+        className="text-zinc-500 hover:text-red-400 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shrink-0"
+        title="Delete this topic"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </span>
+    </button>
+  );
+})}
+</div>
           </div>
         </div>
 
