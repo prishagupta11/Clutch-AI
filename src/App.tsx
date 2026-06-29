@@ -715,6 +715,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
     setIsGeneratingAI(true);
 
     try {
+      // 🚀 Connect straight to Google's public client API gateway
       const geminiKey = (import.meta as any).env.VITE_GEMINI_API_KEY || "";
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
@@ -725,7 +726,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
             contents: [
               {
                 role: "user",
-                parts: [{ text: `System Parameter Directive: You are the Clutch AI Workspace Assistant. Tone requirement is strictly '${userProfile.aiTone}'. Instruction context: ${userProfile.aiInstructions}. Current calendar tasks snapshot payload: ${JSON.stringify(tasks)}. If the user explicitly commands to schedule a new task card, return your structured content string along with JSON parsing notation inside blocks representing dates and hours.` }]
+                parts: [{ text: `System Parameter Directive: You are the Clutch AI Workspace Assistant. Tone requirement is strictly '${userProfile.aiTone}'. Instruction context: ${userProfile.aiInstructions}.` }]
               },
               ...updatedSessionHistory.filter(m => m.type !== "system").map(msg => ({
                 role: msg.isUser ? "user" : "model",
@@ -740,17 +741,12 @@ I can assist in solving coding or college tasks. Just describe what you need to 
         const data = await response.json();
         const aiMsgId = (Date.now() + 1).toString();
         
-        let replyText = "";
-        if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-          replyText = data.candidates[0].content.parts[0].text;
-        } else {
-          replyText = "I processed your request, but received an empty response wrapper framework from the cloud API.";
-        }
+        let replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response text found.";
 
+        // Client-side automatic scheduling helper rule
         if (userPrompt.toLowerCase().includes("schedule") || userPrompt.toLowerCase().includes("add")) {
           const matchedTitle = userPrompt.replace(/add|schedule|in the calendar/gi, "").trim();
-          const targetDay = selectedCalDate; 
-          handleAddNewTask(matchedTitle || "Project update", "General", targetDay, "02:00 PM");
+          handleAddNewTask(matchedTitle || "AI Milestone Goal", "General", selectedCalDate, "02:00 PM");
         }
 
         const finalSessionHistory = [
@@ -764,12 +760,8 @@ I can assist in solving coding or college tasks. Just describe what you need to 
           }
         ];
 
-        setChatSessions((prev) => ({
-          ...prev,
-          [activeSessionId]: finalSessionHistory
-        }));
+        setChatSessions((prev) => ({ ...prev, [activeSessionId]: finalSessionHistory }));
         setChatMessages(finalSessionHistory);
-
       } else {
         throw new Error("Direct gateway connection rejected. Verify environmental cloud credentials.");
       }
@@ -788,10 +780,7 @@ I can assist in solving coding or college tasks. Just describe what you need to 
         }
       ];
 
-      setChatSessions((prev) => ({
-        ...prev,
-        [activeSessionId]: errorSessionHistory
-      }));
+      setChatSessions((prev) => ({ ...prev, [activeSessionId]: errorSessionHistory }));
       setChatMessages(errorSessionHistory);
     } finally {
       setIsGeneratingAI(false);
